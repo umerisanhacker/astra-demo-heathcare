@@ -437,21 +437,25 @@ export default function LinkGuard() {
               Actions modify synthetic in-memory state and log verification to the audit ledger.
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => executeAction('Block Link')}
-                className="btn btn-danger"
-                style={{ padding: '0.55rem 1.25rem' }}
-              >
-                <ShieldAlert size={16} /> Block Link
-              </button>
-              <button
-                onClick={() => executeAction('Allow Link')}
-                className="btn btn-secondary"
-                style={{ padding: '0.55rem 1.25rem' }}
-              >
-                <CheckCircle2 size={16} /> Allow
-              </button>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {latestLinkEvent && (
+                <>
+                  <button
+                    onClick={() => executeAction('Block Link')}
+                    className="btn btn-danger"
+                    style={{ padding: '0.55rem 1.25rem' }}
+                  >
+                    <ShieldAlert size={16} /> Block Link
+                  </button>
+                  <button
+                    onClick={() => executeAction('Allow Link')}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.55rem 1.25rem' }}
+                  >
+                    <CheckCircle2 size={16} /> Allow
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => {
                   setCurrentView('Incidents');
