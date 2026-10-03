@@ -129,6 +129,24 @@ h3 { font-size: 1.05rem; }
 .top-nav > div {
   min-width: 0;
 }
+
+.top-nav > div:first-child {
+  flex: 1 1 auto !important;
+  max-width: none !important;
+  gap: .65rem !important;
+}
+
+.top-nav > div:last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: .75rem !important;
+}
+
+.top-nav > div:first-child > div:first-child {
+  flex: 0 1 230px;
+  width: 230px !important;
+  max-width: 230px !important;
+}
 .topnav-demo-badge,
 .topnav-reset-btn,
 .topnav-demo-btn,
@@ -143,12 +161,12 @@ h3 { font-size: 1.05rem; }
   display: inline-flex;
   align-items: center;
   gap: .42rem;
-  padding: .42rem .72rem;
+  padding: .42rem .68rem;
   border: 1px solid var(--positive);
   border-radius: 999px;
   color: #087a5a;
   background: #e9faf3;
-  font-size: .72rem;
+  font-size: .68rem;
   line-height: 1.05;
   font-weight: 800;
   letter-spacing: .01em;
@@ -177,8 +195,8 @@ h3 { font-size: 1.05rem; }
 }
 .topnav-demo-btn {
   min-height: 38px;
-  padding: .42rem .82rem !important;
-  font-size: .78rem !important;
+  padding: .42rem .68rem !important;
+  font-size: .74rem !important;
   border-radius: 9px !important;
 }
 .topnav-system-status {
@@ -218,8 +236,8 @@ h3 { font-size: 1.05rem; }
 }
 .topnav-public-btn {
   min-height: 38px;
-  padding: .42rem .78rem !important;
-  font-size: .78rem !important;
+  padding: .42rem .68rem !important;
+  font-size: .74rem !important;
   border-radius: 9px !important;
 }
 :root {
@@ -356,7 +374,7 @@ h3 { font-size: 1.05rem; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.75rem;
+  padding: 0 1.25rem;
   position: sticky;
   top: 0;
   z-index: 30;
@@ -734,10 +752,14 @@ input, textarea, select {
     padding: 0 1rem;
   }
   .top-nav > div:first-child {
-    gap: .55rem !important;
+    gap: .5rem !important;
   }
   .top-nav > div:last-child {
-    gap: .65rem !important;
+    gap: .55rem !important;
+  }
+  .top-nav > div:first-child > div:first-child {
+    width: 190px !important;
+    max-width: 190px !important;
   }
   .topnav-system-status span:last-child {
     display: none;
@@ -791,7 +813,8 @@ input, textarea, select {
     flex: 1 1 auto !important;
   }
   .top-nav > div:first-child > div:first-child {
-    max-width: 230px !important;
+    width: 190px !important;
+    max-width: 190px !important;
   }
 }
 
