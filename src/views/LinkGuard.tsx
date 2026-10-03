@@ -35,6 +35,7 @@ export default function LinkGuard() {
   } | null>(null);
 
   const [simulatedAction, setSimulatedAction] = useState<string | null>(null);
+  const latestLinkEvent = linkEvents.find(e => e.status === 'new' || e.status === 'acknowledged');
 
   const runAnalysis = (urlToAnalyze: string) => {
     if (!urlToAnalyze.trim()) return;
@@ -163,6 +164,33 @@ export default function LinkGuard() {
           gap: '0.5rem',
         }}>
           <CheckCircle2 size={16} /> Safe Response Enacted: {simulatedAction} committed to LinkGuard proxy rules & Audit Ledger!
+        </div>
+      )}
+
+      {latestLinkEvent && (
+        <div className="card animate-fade-in" style={{
+          padding: '1rem 1.25rem',
+          background: 'linear-gradient(135deg, rgba(239,68,68,0.07), rgba(14,165,233,0.05))',
+          border: '1px solid rgba(239,68,68,0.28)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--critical-bg)', color: 'var(--critical)', display: 'grid', placeItems: 'center' }}>
+              <ShieldAlert size={19} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--critical)', letterSpacing: '0.06em' }}>NEW LINKGUARD SIGNAL</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{latestLinkEvent.title}</div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>Central event detected • risk {latestLinkEvent.riskContribution}/25 • investigation ready</div>
+            </div>
+          </div>
+          <button onClick={() => handleInspectEvent(String(latestLinkEvent.metadata?.url || inputUrl))} className="btn btn-danger" style={{ padding: '0.5rem 0.85rem', fontSize: '0.78rem' }}>
+            Inspect Signal <ArrowRight size={14} />
+          </button>
         </div>
       )}
 
