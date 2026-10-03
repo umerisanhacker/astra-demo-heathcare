@@ -138,9 +138,7 @@ export default function NetworkView() {
                 </div>
 
                 {hasAlert && (
-                  <span className="badge bg-critical-light" style={{ position: 'absolute', top: '-8px', right: '-8px', fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
-                    ALERT
-                  </span>
+                  <DecisionBadge status="pending" />
                 )}
               </button>
             );
@@ -154,9 +152,12 @@ export default function NetworkView() {
         <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
             <div>
-              <span className={`badge ${selectedNode?.status === 'alert' ? 'bg-critical-light' : selectedNode?.status === 'isolated' ? 'bg-warning-light' : 'bg-positive-light'}`} style={{ marginBottom: '0.35rem' }}>
-                STATUS: {selectedNode?.status?.toUpperCase() || 'UNKNOWN'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.35rem' }}>
+              <DecisionBadge status={selectedNode?.status === 'isolated' ? 'isolated' : selectedNode?.status === 'alert' ? 'pending' : 'allowed'} />
+              <span className="badge bg-accent-light">
+                NODE: {selectedNode?.status?.toUpperCase() || 'UNKNOWN'}
               </span>
+            </div>
               <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 {selectedNode?.name || 'No network node selected'}
               </h3>
