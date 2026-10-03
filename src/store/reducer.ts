@@ -4,6 +4,46 @@ import { calculatePosture } from './riskEngine';
 import { correlateEvents } from './correlationEngine';
 import { createInitialBaseline } from './initialData';
 
+function resolveSecurityEvent(state: AppState, eventId: string, actionName: string, details?: string): AppState {
+  const target = state.events.find(event => event.id === eventId);
+  if (!target) return state;
+
+  const updatedEvents = state.events.map(event =>
+    event.id === eventId ? { ...event, status: 'resolved' as const } : event
+  );
+
+  const updatedIncidents = state.incidents.map(incident =>
+    incident.eventIds.includes(eventId)
+      ? { ...incident, updatedAt: new Date().toISOString() }
+      : incident
+  );
+
+  const now = new Date().toISOString();
+  const audit: AuditEvent = {
+    id: 'aud-response-' + Date.now(),
+    timestamp: now,
+    actor: 'SOC Analyst',
+    system: target.system,
+    action: 'Response completed: ' + actionName,
+    outcome: 'success',
+    relatedEventId: eventId,
+    details: details || target.description,
+  };
+
+  const remainingNotifications = state.notifications.filter(
+    notification => notification.relatedEventId !== eventId
+  );
+
+  return {
+    ...state,
+    events: updatedEvents,
+    incidents: updatedIncidents,
+    securityPosture: calculatePosture(updatedEvents),
+    notifications: remainingNotifications,
+    auditLog: [audit, ...state.auditLog],
+  };
+}
+
 export function rootReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'TRIGGER_SIMULATION': {
@@ -493,6 +533,10 @@ export function rootReducer(state: AppState, action: Action): AppState {
         notifications: [...generatedNotifications, newNotif, ...state.notifications],
         auditLog: [newAudit, ...state.auditLog],
       };
+    }
+
+    case 'RESOLVE_SECURITY_EVENT': {
+      return resolveSecurityEvent(state, action.payload.eventId, action.payload.action, action.payload.details);
     }
 
     case 'ADD_EVENT': {
