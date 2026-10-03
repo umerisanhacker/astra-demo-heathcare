@@ -256,7 +256,7 @@ export function PublicHome() {
               </div>
 
               {/* Main Preview Glass Card */}
-              <div className="card" style={{
+              <div className="card perspective-panel" style={{
                 borderRadius: '16px',
                 padding: '1.75rem',
                 boxShadow: 'var(--shadow-lg)',
