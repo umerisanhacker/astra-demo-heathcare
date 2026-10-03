@@ -23,6 +23,8 @@ export default function EHRSecurity() {
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
   const breakGlassSessions = ehrAccesses.filter(a => a.isBreakGlass);
+  const anomalousAccesses = ehrAccesses.filter(a => a.isAnomalous && !a.isBreakGlass);
+  const latestAnomaly = anomalousAccesses[0];
 
   const handleApproveBreakGlass = (accessId: string) => {
     approveBreakGlass(accessId);
@@ -93,90 +95,98 @@ export default function EHRSecurity() {
         </div>
       )}
 
-      {/* SECTION 25: BULK ACCESS DETECTION VELOCITY GAUGE (Prominently featured) */}
-      <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white', borderLeft: '4px solid var(--critical)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
-          <div>
-            <span className="badge bg-critical-light" style={{ marginBottom: '0.35rem' }}>
-              ACCESS VELOCITY ANOMALY DETECTED
-            </span>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--critical)' }}>
-              Bulk Patient Chart Exfiltration Velocity
-            </h2>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Clinical velocity tripwire breached by account: <strong>dr.sarah</strong> (Hospital Workstation 04 / Unknown Device 192.168.1.100)
+      {/* Live clinical-access posture */}
+      {latestAnomaly ? (
+        <div className="card network-glow" style={{ padding: '1.75rem', backgroundColor: 'white', borderLeft: '4px solid var(--critical)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
+              <span className="badge bg-critical-light" style={{ marginBottom: '0.35rem' }}>
+                ACCESS VELOCITY ANOMALY DETECTED
+              </span>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--critical)' }}>
+                Bulk Patient Chart Access Requires Review
+              </h2>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                Latest synthetic anomaly: <strong>{latestAnomaly.doctorName}</strong> → {latestAnomaly.patientName} • {latestAnomaly.device}
+              </div>
             </div>
+
+            <button
+              onClick={() => {
+                if (latestAnomaly) {
+                  const event = ehrAccesses.find(a => a.id === latestAnomaly.id);
+                  if (event) {
+                    setCurrentView('Incidents');
+                  }
+                }
+              }}
+              className="btn btn-primary"
+              style={{ backgroundColor: 'var(--critical)', fontSize: '0.85rem' }}
+            >
+              Open Investigation <ArrowRight size={15} />
+            </button>
           </div>
 
-          <button
-            onClick={() => {
-              selectIncident('INC-001');
-              setCurrentView('Incidents');
-            }}
-            className="btn btn-primary"
-            style={{ backgroundColor: 'var(--critical)', fontSize: '0.85rem' }}
-          >
-            Investigate Incident INC-001 <ArrowRight size={15} />
-          </button>
-        </div>
-
-        {/* Velocity Gauge Comparison */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '1.5rem',
-          backgroundColor: 'var(--bg-main)',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid var(--border)',
-          marginBottom: '1.25rem',
-        }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Normal Attending Baseline
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1.25rem',
+            backgroundColor: 'var(--bg-main)',
+            padding: '1.35rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+          }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Detection Reason
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--critical)', marginTop: '.25rem' }}>
+                {latestAnomaly.patientName.includes('47') ? '47 records / 90 seconds' : 'Relationship anomaly'}
+              </div>
+              <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+                {latestAnomaly.accessReason}
+              </div>
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--positive)', marginTop: '0.2rem' }}>
-              5 records <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ 30 minutes</span>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Policy Context
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '.25rem' }}>
+                {latestAnomaly.relationship === 'Unrelated' ? 'Unrelated clinical relationship' : 'Review required'}
+              </div>
+              <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+                CareSentinel records the evidence before an operator chooses a response.
+              </div>
             </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
-              Routine clinical chart review pacing for scheduled morning ward rounds.
-            </div>
-          </div>
-
-          <div style={{ borderLeft: '2px solid var(--border)', paddingLeft: '1.5rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--critical)', textTransform: 'uppercase' }}>
-              Observed Exfiltration Rate (Anomalous)
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--critical)', marginTop: '0.2rem' }}>
-              47 records <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ 90 seconds</span>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--critical)', fontWeight: 600, marginTop: '0.3rem' }}>
-              9.4x above maximum permissible clinical query threshold.
-            </div>
-          </div>
-        </div>
-
-        {/* Explainable Reasons */}
-        <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-            Velocity Anomaly Attribution Factors:
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Abnormally high access rate (47 charts / 90s)
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Multiple unrelated patient MRNs accessed
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Unusual off-hours window (03:17)
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Originated from unmanaged rogue device
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Active Synthetic Anomalies
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--critical)', marginTop: '.25rem' }}>
+                {anomalousAccesses.length}
+              </div>
+              <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+                Derived from the shared security event state.
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="card network-glow" style={{ padding: '1.5rem', borderLeft: '4px solid var(--positive)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.8rem' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--positive-bg)', color: 'var(--positive)' }}>
+              <CheckCircle2 size={22} />
+            </div>
+            <div>
+              <div className="badge bg-positive-light" style={{ marginBottom: '.3rem' }}>CLINICAL ACCESS BASELINE NORMAL</div>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>No active synthetic EHR anomalies</h2>
+              <p style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.2rem' }}>
+                Approved break-glass activity remains documented and is not treated as malicious by the prototype scoring engine.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB CONTENT */}
       {activeTab === 'access_logs' && (
