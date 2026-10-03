@@ -202,8 +202,8 @@ export function useIsolateDevice() {
 
 export function useIsolateNetworkNode() {
   const { dispatch } = useStore();
-  return useCallback((nodeId: string) => {
-    dispatch({ type: 'ISOLATE_NETWORK_NODE', payload: { nodeId } });
+  return useCallback((nodeId: string, reason?: string) => {
+    dispatch({ type: 'ISOLATE_NETWORK_NODE', payload: { nodeId, reason } });
   }, [dispatch]);
 }
 
@@ -229,15 +229,15 @@ export function useAddIncidentNote() {
 
 export function useApproveBreakGlass() {
   const { dispatch } = useStore();
-  return useCallback((accessId: string) => {
-    dispatch({ type: 'APPROVE_BREAK_GLASS', payload: { accessId } });
+  return useCallback((accessId: string, reason?: string) => {
+    dispatch({ type: 'APPROVE_BREAK_GLASS', payload: { accessId, reason } });
   }, [dispatch]);
 }
 
 export function useDeclineBreakGlass() {
   const { dispatch } = useStore();
-  return useCallback((accessId: string) => {
-    dispatch({ type: 'DECLINE_BREAK_GLASS', payload: { accessId } });
+  return useCallback((accessId: string, reason?: string) => {
+    dispatch({ type: 'DECLINE_BREAK_GLASS', payload: { accessId, reason } });
   }, [dispatch]);
 }
 
