@@ -4,7 +4,6 @@ import {
   useDevices, 
   useEvents, 
   useFlagUser, 
-  useSelectIncident, 
   useSetCurrentView,
   useCreateIncidentFromEvent
 } from '../store/store';
@@ -25,7 +24,6 @@ export default function Identity() {
   const devices = useDevices();
   const events = useEvents();
   const flagUser = useFlagUser();
-  const selectIncident = useSelectIncident();
   const setCurrentView = useSetCurrentView();
   const createIncidentFromEvent = useCreateIncidentFromEvent();
 
