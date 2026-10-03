@@ -32,12 +32,12 @@ export type Action =
   | { type: 'FLAG_USER'; payload: { userId: string; reason?: string } }
   | { type: 'UNFLAG_USER'; payload: { userId: string } }
   | { type: 'ISOLATE_DEVICE'; payload: { deviceId: string } }
-  | { type: 'ISOLATE_NETWORK_NODE'; payload: { nodeId: string } }
+  | { type: 'ISOLATE_NETWORK_NODE'; payload: { nodeId: string; reason?: string } }
   | { type: 'RESTORE_DEVICE'; payload: { deviceId: string } }
   | { type: 'UPDATE_INCIDENT_STATUS'; payload: { incidentId: string; status: IncidentStatus } }
   | { type: 'ADD_INCIDENT_NOTE'; payload: { incidentId: string; note: IncidentNote } }
-  | { type: 'APPROVE_BREAK_GLASS'; payload: { accessId: string } }
-  | { type: 'DECLINE_BREAK_GLASS'; payload: { accessId: string } }
+  | { type: 'APPROVE_BREAK_GLASS'; payload: { accessId: string; reason?: string } }
+  | { type: 'DECLINE_BREAK_GLASS'; payload: { accessId: string; reason?: string } }
   | { type: 'CREATE_INCIDENT_FROM_EVENT'; payload: { eventId: string } }
   | { type: 'SET_GUIDED_DEMO'; payload: { active: boolean; step?: number } }
   | { type: 'RESET_DEMO' };
