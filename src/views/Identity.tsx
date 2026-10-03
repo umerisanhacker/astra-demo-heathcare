@@ -262,8 +262,11 @@ export default function Identity() {
           {userEvents.length > 0 && (
             <button
               onClick={() => {
-                selectIncident('INC-001');
-                setCurrentView('Incidents');
+                if (latestActiveUserEvent) {
+                  createIncidentFromEvent(latestActiveUserEvent.id);
+                } else {
+                  setCurrentView('Incidents');
+                }
               }}
               className="btn btn-outline"
               style={{ width: '100%', fontSize: '0.85rem' }}
