@@ -49,10 +49,10 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" aria-label="CareSentinel security console navigation">
       {/* Brand Header */}
       <div style={{
-        padding: '1.25rem 1.5rem',
+        padding: '1.1rem 1.15rem',
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
@@ -67,7 +67,7 @@ export function Sidebar() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+          boxShadow: '0 8px 22px rgba(8, 126, 164, 0.18)',
         }}>
           <Shield size={22} />
         </div>
