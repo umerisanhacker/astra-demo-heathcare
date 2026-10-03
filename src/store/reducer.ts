@@ -937,7 +937,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'ISOLATE_NETWORK_NODE': {
-      const { nodeId } = action.payload;
+      const { nodeId, reason } = action.payload;
       const node = state.networkNodes.find(n => n.id === nodeId);
       if (!node) return state;
 
@@ -959,7 +959,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Network Access Control (NAC)',
         action: `Isolated network node: ${node.name}`,
         outcome: 'success',
-        details: `Synthetic node ${node.ip} moved to quarantine state.`,
+        details: reason || `Synthetic node ${node.ip} moved to quarantine state.`,
       };
 
       return {
@@ -1032,7 +1032,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'APPROVE_BREAK_GLASS': {
-      const { accessId } = action.payload;
+      const { accessId, reason } = action.payload;
       const acc = state.ehrAccesses.find(a => a.id === accessId);
       if (!acc || acc.breakGlassDecision === 'approved') return state;
 
@@ -1043,7 +1043,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'EHR Audit Core',
         action: `Emergency break-glass reviewed & approved: ${acc.doctorName} -> ${acc.patientName}`,
         outcome: 'success',
-        details: `Clinical emergency justification verified: ${acc.accessReason}`,
+        details: reason || `Clinical emergency justification verified: ${acc.accessReason}`,
       };
       const updatedEvents = state.events.map(ev =>
         ev.metadata.accessId === accessId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS')
@@ -1075,7 +1075,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'EHR Audit Core',
         action: `Emergency break-glass reviewed & declined: ${acc.doctorName} -> ${acc.patientName}`,
         outcome: 'warning',
-        details: `Emergency access was not approved by the synthetic compliance reviewer. Recorded reason: ${acc.accessReason}`,
+        details: reason || `Emergency access was not approved by the synthetic compliance reviewer. Recorded reason: ${acc.accessReason}`,
       };
       const updatedEvents = state.events.map(ev =>
         ev.metadata.accessId === accessId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS')
