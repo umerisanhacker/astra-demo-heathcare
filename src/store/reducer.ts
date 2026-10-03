@@ -680,9 +680,17 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Analyst reviewed email body and false-positive indicators.',
       };
+      const releasedEvents = state.events.map(ev =>
+        ev.category === 'email' && ev.userId === target?.recipient?.split('@')[0]
+          ? { ...ev, status: 'resolved' as const }
+          : ev
+      );
       return {
         ...state,
         emails: state.emails.map(e => e.id === emailId ? { ...e, status: 'inbox' as const } : e),
+        events: releasedEvents,
+        securityPosture: calculatePosture(releasedEvents),
+        notifications: state.notifications.filter(n => n.relatedEventId && !releasedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -711,6 +719,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -737,6 +746,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         users: state.users.map(u => u.id === userId ? { ...u, status: 'flagged' as const } : u),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.userId === userId && ev.status === 'acknowledged')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -771,6 +781,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         devices: state.devices.map(d => d.id === deviceId ? { ...d, status: 'isolated' as const } : d),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.deviceId === deviceId && ev.status === 'acknowledged')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -858,6 +869,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
