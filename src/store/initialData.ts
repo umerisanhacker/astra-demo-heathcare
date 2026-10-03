@@ -321,7 +321,7 @@ export const initialEvents: SecurityEvent[] = [
     userId: 'dr.emily',
     system: 'Epic/Cerner EHR Connector',
     status: 'acknowledged',
-    riskContribution: 4,
+    riskContribution: 0,
     metadata: { patientId: 'pat-2201', protocol: 'Trauma Code Alpha', breakGlassApproved: true },
   },
 ];
