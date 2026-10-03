@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 import { useEvents, useSetCurrentView, useResolveSecurityEvent } from '../store/store';
 import { 
   Link as LinkIcon, 
@@ -207,7 +208,10 @@ export default function LinkGuard() {
               Live Intercepted Healthcare Hyperlinks ({linkEvents.length})
             </h2>
           </div>
-          <span className="badge bg-positive-light">LinkGuard Safe-Proxy Active</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.55rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <DecisionBadge status={latestLinkEvent ? deriveDecisionStatus(latestLinkEvent) : 'allowed'} />
+            <span className="badge bg-positive-light">LinkGuard Safe-Proxy Active</span>
+          </div>
         </div>
 
         {linkEvents.length === 0 ? (
@@ -230,6 +234,7 @@ export default function LinkGuard() {
                   <th style={{ padding: '0.65rem 0.75rem' }}>Target User</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Intercepted URL</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Risk Score</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Decision Status</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Action</th>
                 </tr>
               </thead>
@@ -248,7 +253,14 @@ export default function LinkGuard() {
                         {url}
                       </td>
                       <td style={{ padding: '0.65rem 0.75rem' }}>
-                        <span className="badge bg-critical-light">88/100 (CRITICAL)</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', flexWrap: 'wrap' }}>
+                          <span className={`badge ${Number(evt.metadata?.riskScore || 0) >= 80 ? 'bg-critical-light' : Number(evt.metadata?.riskScore || 0) >= 60 ? 'bg-warning-light' : 'bg-positive-light'}`}>
+                            {Number(evt.metadata?.riskScore || 0)}/100 ({evt.severity.toUpperCase()})
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.65rem 0.75rem' }}>
+                        <DecisionBadge status={deriveDecisionStatus(evt)} />
                       </td>
                       <td style={{ padding: '0.65rem 0.75rem' }}>
                         <button
