@@ -1,12 +1,12 @@
-import { useEvents, useSelectIncident, useSetCurrentView } from '../store/store';
+import { useEvents, useCreateIncidentFromEvent, useSetCurrentView } from '../store/store';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function ApplicationSecurity() {
   const events = useEvents();
-  const selectIncident = useSelectIncident();
+  const createIncidentFromEvent = useCreateIncidentFromEvent();
   const setCurrentView = useSetCurrentView();
 
-  const appEvents = events.filter(e => e.category === 'application');
+  const appEvents = events.filter(e => e.category === 'application' && (e.status === 'new' || e.status === 'acknowledged'));
 
   return (
     <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -37,8 +37,13 @@ export default function ApplicationSecurity() {
             <button
               onClick={() => {
                 const related = appEvents.find(e => e.relatedIncidentId);
-                if (related?.relatedIncidentId) selectIncident(related.relatedIncidentId);
-                setCurrentView('Incidents');
+                if (related?.relatedIncidentId) {
+                  setCurrentView('Incidents');
+                } else if (appEvents[0]) {
+                  createIncidentFromEvent(appEvents[0].id);
+                } else {
+                  setCurrentView('Incidents');
+                }
               }}
               className="btn btn-outline"
               style={{ fontSize: '0.85rem' }}
@@ -114,10 +119,7 @@ export default function ApplicationSecurity() {
                 </div>
 
                 <button
-                  onClick={() => {
-                    selectIncident('INC-001');
-                    setCurrentView('Incidents');
-                  }}
+                  onClick={() => createIncidentFromEvent(e.id)}
                   className="btn btn-outline"
                   style={{ fontSize: '0.78rem', padding: '0.4rem 0.75rem' }}
                 >
