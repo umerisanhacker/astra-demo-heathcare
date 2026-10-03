@@ -24,9 +24,10 @@ export default function Overview() {
 
   const activeIncidents = incidents.filter(i => i.status === 'active' || i.status === 'investigating');
   const alertCount = events.filter(e => e.status === 'new').length;
-  const identityCount = events.filter(e => e.category === 'identity').length;
-  const ehrAnomaliesCount = events.filter(e => e.category === 'ehr' && e.metadata.breakGlassApproved !== true && (e.eventType === 'EHR_ACCESS' || e.eventType === 'EHR_BULK_ACCESS')).length;
-  const networkEventsCount = events.filter(e => e.category === 'network').length;
+  const activeTelemetry = events.filter(e => e.status === 'new' || e.status === 'acknowledged');
+  const identityCount = activeTelemetry.filter(e => e.category === 'identity').length;
+  const ehrAnomaliesCount = activeTelemetry.filter(e => e.category === 'ehr' && e.metadata.breakGlassApproved !== true && (e.eventType === 'EHR_ACCESS' || e.eventType === 'EHR_BULK_ACCESS')).length;
+  const networkEventsCount = activeTelemetry.filter(e => e.category === 'network').length;
 
   const criticalIncident = incidents.find(i => i.severity === 'critical' && i.status !== 'resolved');
   const recentEvents = selectRecentEvents(events, 6);
