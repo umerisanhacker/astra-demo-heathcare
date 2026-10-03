@@ -65,8 +65,8 @@ export function PublicHome() {
     {
       name: 'AUDIT',
       icon: CheckCircle2,
-      summary: 'Immutable, chronological ledger of all detections, clinical accesses, and responder actions.',
-      detail: 'Full forensic traceability supporting HIPAA compliance, break-glass justification documentation, and historical incident review.',
+      summary: 'Chronological, traceable ledger of all detections, clinical accesses, and responder actions.',
+      detail: 'Full forensic traceability supporting HIPAA-oriented auditability, break-glass justification documentation, and historical incident review.',
       tag: 'Forensic Auditability'
     },
   ];
@@ -270,10 +270,10 @@ export function PublicHome() {
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
                     <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
-                      Northstar SOC • Live Telemetry
+                      Northstar SOC • Synthetic Telemetry
                     </span>
                   </div>
-                  <span className="badge bg-critical-light">Incident INC-001 (Risk: 94/100)</span>
+                  <span className="badge bg-critical-light">Illustrative Incident • Risk 94/100</span>
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
@@ -317,7 +317,7 @@ export function PublicHome() {
                   className="btn btn-primary"
                   style={{ width: '100%', fontSize: '0.875rem' }}
                 >
-                  Inspect Incident Investigation Workspace <ArrowRight size={15} />
+                  Open Investigation Workspace <ArrowRight size={15} />
                 </button>
               </div>
             </div>
