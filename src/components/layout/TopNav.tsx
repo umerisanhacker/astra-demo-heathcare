@@ -99,7 +99,7 @@ export function TopNav() {
             </span>
           </div>
 
-          <div className="badge bg-positive-light" style={{ display: 'flex', gap: '0.4rem', border: '1px solid var(--positive)', padding: '0.3rem 0.65rem' }}>
+          <div className="topnav-demo-badge">
             <ShieldCheck size={14} color="var(--positive)" />
             <span>DEMO MODE — Synthetic Hospital</span>
           </div>
@@ -107,23 +107,10 @@ export function TopNav() {
           <button
             onClick={() => setShowResetModal(true)}
             title="Reset Demo Environment"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.3rem 0.65rem',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              backgroundColor: 'white',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-sm)',
-            }}
+            className="topnav-reset-btn"
           >
             <RotateCcw size={13} color="var(--warning)" />
-            <span>↻ Reset Demo</span>
+            <span>Reset Demo</span>
           </button>
 
           {resetFeedback && (
@@ -138,23 +125,17 @@ export function TopNav() {
           <button
             onClick={() => setShowGuidedDemo(true)}
             className="btn btn-outline"
-            style={{
-              padding: '0.4rem 0.8rem',
-              fontSize: '0.8rem',
-              color: 'var(--accent-primary)',
-              borderColor: 'rgba(2, 132, 199, 0.3)',
-              backgroundColor: 'rgba(2, 132, 199, 0.04)',
-            }}
+            className="btn btn-outline topnav-demo-btn"
           >
             <Play size={14} /> Start Guided Demo
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+          <div className="topnav-system-status">
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--positive)', display: 'inline-block' }}></span>
             <span style={{ fontWeight: 500 }}>All Systems Monitored</span>
           </div>
 
-          <div style={{ width: '1px', height: '22px', backgroundColor: 'var(--border)' }}></div>
+          <div className="topnav-divider" aria-hidden="true"></div>
 
           {/* Notifications Dropdown */}
           <div style={{ position: 'relative' }}>
@@ -163,15 +144,7 @@ export function TopNav() {
                 setShowNotifs(!showNotifs);
                 if (!showNotifs) markNotificationsRead();
               }}
-              style={{
-                position: 'relative',
-                color: showNotifs ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                padding: '0.4rem',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              className="topnav-icon-btn" aria-label="Security notifications"
             >
               <Bell size={19} />
               {unreadCount > 0 && (
@@ -264,7 +237,7 @@ export function TopNav() {
           <button
             onClick={() => setAppMode('public')}
             className="btn btn-secondary"
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+            className="btn btn-secondary topnav-public-btn"
             title="Switch to Public Product Website"
           >
             Public Site <ExternalLink size={13} />
