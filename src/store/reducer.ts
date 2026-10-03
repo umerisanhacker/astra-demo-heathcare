@@ -1046,7 +1046,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         details: `Clinical emergency justification verified: ${acc.accessReason}`,
       };
       const updatedEvents = state.events.map(ev =>
-        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
+        ev.metadata.accessId === accessId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS')
           ? { ...ev, status: 'resolved' as const, responseStatus: 'approved' as const, metadata: { ...ev.metadata, breakGlassApproved: true, breakGlassDecision: 'approved' } }
           : ev
       );
@@ -1058,7 +1058,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         events: updatedEvents,
         incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
-        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS') && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -1078,7 +1078,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         details: `Emergency access was not approved by the synthetic compliance reviewer. Recorded reason: ${acc.accessReason}`,
       };
       const updatedEvents = state.events.map(ev =>
-        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
+        ev.metadata.accessId === accessId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS')
           ? { ...ev, status: 'resolved' as const, responseStatus: 'declined' as const, metadata: { ...ev.metadata, breakGlassApproved: false, breakGlassDecision: 'declined' } }
           : ev
       );
