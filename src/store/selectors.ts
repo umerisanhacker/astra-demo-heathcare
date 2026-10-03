@@ -75,7 +75,7 @@ export const selectNavigationAlertCounts = (state: AppState): NavigationAlertCou
         ['EHR_ACCESS', 'EHR_BULK_ACCESS', 'BREAK_GLASS'].includes(event.eventType) &&
         !(
           event.eventType === 'BREAK_GLASS' &&
-          event.metadata.breakGlassApproved === true
+          event.metadata.breakGlassDecision !== 'pending'
         )
     ).length,
   };
