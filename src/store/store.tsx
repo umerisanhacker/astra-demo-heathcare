@@ -226,6 +226,20 @@ export function useApproveBreakGlass() {
   }, [dispatch]);
 }
 
+export function useDeclineBreakGlass() {
+  const { dispatch } = useStore();
+  return useCallback((accessId: string) => {
+    dispatch({ type: 'DECLINE_BREAK_GLASS', payload: { accessId } });
+  }, [dispatch]);
+}
+
+export function useCreateIncidentFromEvent() {
+  const { dispatch } = useStore();
+  return useCallback((eventId: string) => {
+    dispatch({ type: 'CREATE_INCIDENT_FROM_EVENT', payload: { eventId } });
+  }, [dispatch]);
+}
+
 export function useSelectIncident() {
   const { dispatch } = useStore();
   return useCallback((id: string | null) => {
