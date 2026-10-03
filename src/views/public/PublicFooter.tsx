@@ -97,7 +97,7 @@ export function PublicFooter() {
           gap: '1rem',
         }}>
           <div>
-            © {new Date().getFullYear()} CareSentinel. Synthetic demonstration environment. No connection to real clinical systems or actual patient records.
+            © 2026 CareSentinel. Synthetic demonstration environment. No connection to real clinical systems or actual patient records.
           </div>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             <button onClick={() => setPublicPage('privacy')} style={{ color: 'var(--text-muted)' }}>Privacy</button>
