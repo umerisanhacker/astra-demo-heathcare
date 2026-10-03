@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 import { useEvents, useSetCurrentView, useResolveSecurityEvent } from '../store/store';
 import { 
@@ -106,19 +106,9 @@ export default function LinkGuard() {
     }, 400);
   };
 
-  // Re-run the inspector whenever the central event stream receives a new
-  // LinkGuard signal. This is what makes Attack Simulator -> LinkGuard a live
-  // workflow instead of a static page.
-  useEffect(() => {
-    const latestUrl = (linkEvents.find(e => e.status === 'new' || e.status === 'acknowledged')?.metadata?.url as string) || inputUrl;
-    if (latestUrl) {
-      setInputUrl(latestUrl);
-      runAnalysis(latestUrl);
-    }
-    // The dependency intentionally tracks event count: the simulator appends events.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkEvents.length]);
-
+  // Security signals remain telemetry-only until an analyst explicitly opens
+  // the finding with "Inspect URL" or runs a manual URL analysis. This prevents
+  // response controls and detailed analysis from appearing automatically.
   const handleAnalyze = () => {
     runAnalysis(inputUrl);
   };
