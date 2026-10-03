@@ -1,6 +1,7 @@
 import type { SecurityEvent } from '../../store/types';
 import { Shield, AlertTriangle, Key, Network, Mail, Activity, Link as LinkIcon, Server, ChevronRight } from 'lucide-react';
 import { useSetCurrentView, useSelectIncident } from '../../store/store';
+import { DecisionBadge, deriveDecisionStatus } from '../security/DecisionBadge';
 
 interface Props {
   events: SecurityEvent[];
@@ -105,6 +106,7 @@ export default function RecentEvents({ events }: Props) {
                   <span className={`badge ${e.severity === 'critical' ? 'bg-critical-light' : e.severity === 'high' ? 'bg-warning-light' : 'bg-accent-light'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
                     {e.severity.toUpperCase()}
                   </span>
+                  <DecisionBadge status={deriveDecisionStatus(e)} />
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
                   <span style={{ fontWeight: 600 }}>{new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span> • {e.actor || e.userId || e.source} • <span style={{ color: 'var(--text-muted)' }}>{e.system}</span>
