@@ -14,6 +14,7 @@ export type Action =
   | { type: 'ADD_AUDIT'; payload: AuditEvent }
   | { type: 'ADD_AUDITS'; payload: AuditEvent[] }
   | { type: 'ADD_NOTIFICATION'; payload: AppNotification }
+  | { type: 'RESOLVE_SECURITY_EVENT'; payload: { eventId: string; action: string; details?: string } }
   | { type: 'SET_INCIDENTS'; payload: CorrelatedIncident[] }
   | { type: 'MARK_NOTIFICATIONS_READ' }
   | { type: 'SET_ATTACK_CHAIN_PROGRESS'; payload: number }
