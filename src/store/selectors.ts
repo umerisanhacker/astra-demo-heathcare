@@ -24,3 +24,59 @@ export const selectSearchResults = (state: AppState) => {
   };
 };
 
+export interface NavigationAlertCounts {
+  incidents: number;
+  emailSecurity: number;
+  linkGuard: number;
+  attachments: number;
+  identity: number;
+  network: number;
+  applicationSecurity: number;
+  ehrSecurity: number;
+}
+
+const isVerificationPending = (event: SecurityEvent) =>
+  event.status === 'new' || event.status === 'acknowledged';
+
+export const selectNavigationAlertCounts = (state: AppState): NavigationAlertCounts => {
+  const pendingEvents = state.events.filter(isVerificationPending);
+
+  return {
+    incidents: state.incidents.filter(
+      incident => incident.status === 'new' || incident.status === 'active' || incident.status === 'investigating' || incident.status === 'escalated'
+    ).length,
+    emailSecurity: pendingEvents.filter(
+      event => event.category === 'email' && event.eventType === 'PHISHING_DETECTED'
+    ).length,
+    linkGuard: pendingEvents.filter(
+      event => event.eventType === 'SUSPICIOUS_LINK'
+    ).length,
+    attachments: pendingEvents.filter(
+      event => event.eventType === 'ATTACHMENT_ANALYZED'
+    ).length,
+    identity: pendingEvents.filter(
+      event =>
+        event.category === 'identity' &&
+        ['FAILED_LOGIN', 'UNUSUAL_LOGIN', 'UNKNOWN_DEVICE', 'CREDENTIAL_COMPROMISE', 'BRUTE_FORCE'].includes(event.eventType)
+    ).length,
+    network: pendingEvents.filter(
+      event =>
+        event.category === 'network' &&
+        ['PORT_SCAN', 'BRUTE_FORCE', 'SUSPICIOUS_OUTBOUND', 'LATERAL_MOVEMENT'].includes(event.eventType)
+    ).length,
+    applicationSecurity: pendingEvents.filter(
+      event =>
+        event.category === 'application' &&
+        ['APP_PROBE', 'API_ABUSE'].includes(event.eventType)
+    ).length,
+    ehrSecurity: pendingEvents.filter(
+      event =>
+        event.category === 'ehr' &&
+        ['EHR_ACCESS', 'EHR_BULK_ACCESS', 'BREAK_GLASS'].includes(event.eventType) &&
+        !(
+          event.eventType === 'BREAK_GLASS' &&
+          event.metadata.breakGlassDecision !== 'pending'
+        )
+    ).length,
+  };
+};

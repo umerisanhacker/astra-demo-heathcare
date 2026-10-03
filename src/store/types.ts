@@ -103,6 +103,8 @@ export interface SimulatedEHRAccess {
   isAnomalous: boolean;
   isBreakGlass: boolean;
   breakGlassApproved?: boolean;
+  breakGlassDecision?: 'pending' | 'approved' | 'declined';
+  relatedEventId?: string;
   risk: Severity;
 }
 
@@ -121,6 +123,8 @@ export interface SecurityEvent {
   system: string;
   status: EventStatus;
   riskContribution: number; // 0-25 points deducted
+  /** Operator/clinical decision state for the finding. Undefined means no response has been recorded yet. */
+  responseStatus?: 'pending' | 'approved' | 'blocked' | 'allowed' | 'quarantined' | 'declined' | 'isolated' | 'reviewed' | 'contained' | 'resolved';
   relatedIncidentId?: string;
   metadata: Record<string, string | number | boolean>;
 }

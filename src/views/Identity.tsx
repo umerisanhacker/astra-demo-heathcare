@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 import { 
   useUsers, 
   useDevices, 
   useEvents, 
   useFlagUser, 
-  useSelectIncident, 
-  useSetCurrentView 
+  useSetCurrentView,
+  useCreateIncidentFromEvent
 } from '../store/store';
 import { 
   Users, 
@@ -24,14 +25,16 @@ export default function Identity() {
   const devices = useDevices();
   const events = useEvents();
   const flagUser = useFlagUser();
-  const selectIncident = useSelectIncident();
   const setCurrentView = useSetCurrentView();
+  const createIncidentFromEvent = useCreateIncidentFromEvent();
 
   const [selectedUser, setSelectedUser] = useState<SimulatedUser>(users[0]);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const identityEvents = events.filter(e => e.category === 'identity');
-  const userEvents = identityEvents.filter(e => e.userId === selectedUser.id);
+  const activeIdentityEvents = identityEvents.filter(e => e.status === 'new' || e.status === 'acknowledged');
+  const userEvents = identityEvents.filter(e => e.userId === selectedUser.id && (e.status === 'new' || e.status === 'acknowledged'));
+  const latestActiveUserEvent = [...userEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
   const handleFlagAccount = (userId: string) => {
     flagUser(userId);
@@ -86,7 +89,7 @@ export default function Identity() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Identity Anomalies</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: identityEvents.length > 0 ? 'var(--critical)' : 'var(--positive)', marginTop: '0.2rem' }}>{identityEvents.length}</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: identityEvents.length > 0 ? 'var(--critical)' : 'var(--positive)', marginTop: '0.2rem' }}>{activeIdentityEvents.length}</div>
             </div>
             <div style={{ padding: '0.6rem', backgroundColor: 'var(--critical-bg)', borderRadius: '8px', color: 'var(--critical)' }}>
               <AlertTriangle size={22} />
@@ -117,7 +120,7 @@ export default function Identity() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {users.map(u => {
               const active = selectedUser.id === u.id;
-              const hasAlerts = identityEvents.some(e => e.userId === u.id);
+              const hasAlerts = activeIdentityEvents.some(e => e.userId === u.id);
               return (
                 <button
                   key={u.id}
@@ -154,9 +157,12 @@ export default function Identity() {
                     </div>
                   </div>
 
-                  <span className={`badge ${u.status === 'flagged' ? 'bg-critical-light' : hasAlerts ? 'bg-warning-light' : 'bg-positive-light'}`}>
-                    {u.status === 'flagged' ? 'FLAGGED' : hasAlerts ? 'ELEVATED RISK' : 'NORMAL'}
-                  </span>
+                  <DecisionBadge status={u.status === 'flagged'
+                    ? (activeIdentityEvents.find(e => e.userId === u.id) ? deriveDecisionStatus(activeIdentityEvents.find(e => e.userId === u.id)!) : 'pending')
+                    : hasAlerts
+                      ? 'pending'
+                      : 'allowed'
+                  } />
                 </button>
               );
             })}
@@ -260,13 +266,16 @@ export default function Identity() {
           {userEvents.length > 0 && (
             <button
               onClick={() => {
-                selectIncident('INC-001');
-                setCurrentView('Incidents');
+                if (latestActiveUserEvent) {
+                  createIncidentFromEvent(latestActiveUserEvent.id);
+                } else {
+                  setCurrentView('Incidents');
+                }
               }}
               className="btn btn-outline"
               style={{ width: '100%', fontSize: '0.85rem' }}
             >
-              Investigate Associated Incident in SOC Workspace <ArrowRight size={15} />
+              Open in SOC Investigation Workspace <ArrowRight size={15} />
             </button>
           )}
         </div>

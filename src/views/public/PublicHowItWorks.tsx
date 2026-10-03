@@ -15,7 +15,7 @@ export function PublicHowItWorks() {
       num: '01',
       title: 'PREVENT — Multi-Vector Perimeter Defense',
       desc: 'CareSentinel intercepts inbound threats at the edge of the hospital environment. It evaluates sender reputation, domain typo-squatting, display-name masquerading, link redirection chains, and attachment archive structures before physicians or staff interact with potential lures.',
-      metrics: 'Blocks 99.4% of synthetic look-alike domains before inbox placement.',
+      metrics: 'Synthetic benchmark: look-alike domains are evaluated before the demo inbox workflow.',
       icon: Shield,
     },
     {
@@ -29,7 +29,7 @@ export function PublicHowItWorks() {
       num: '03',
       title: 'CORRELATE — Attack Chain Synthesis',
       desc: 'Instead of bombarding hospital SOC analysts with disconnected alerts, CareSentinel’s Correlation Engine fuses signals across email, identity, network, and EHR systems. It recognizes that a clicked link, an off-hours login, and an unusual EHR query share the same target physician account.',
-      metrics: 'Reduces alert fatigue by synthesizing 10+ signals into 1 unified incident.',
+      metrics: 'Correlation goal: turn related multi-system signals into one investigation workspace.',
       icon: Layers,
     },
     {
@@ -49,8 +49,8 @@ export function PublicHowItWorks() {
     {
       num: '06',
       title: 'AUDIT — Immutable Forensic Verification',
-      desc: 'Every detection, policy decision, quarantine event, and break-glass override is committed to an immutable chronological audit ledger. This provides the forensic traceability required for HIPAA compliance and post-incident clinical governance.',
-      metrics: '100% auditable event ledger with timestamp, actor, system, and outcome.',
+      desc: 'Every detection, policy decision, quarantine event, and break-glass override is committed to an immutable chronological audit ledger. This provides the forensic traceability required for HIPAA-oriented auditability and post-incident clinical governance.',
+      metrics: 'Chronological prototype ledger records timestamp, actor, system, action, and outcome.',
       icon: CheckCircle2,
     },
   ];

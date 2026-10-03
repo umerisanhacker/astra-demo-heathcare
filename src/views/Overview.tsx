@@ -14,6 +14,7 @@ import ThreatChart from '../components/dashboard/ThreatChart';
 import SecurityPosture from '../components/dashboard/SecurityPosture';
 import CriticalIncident from '../components/dashboard/CriticalIncident';
 import RecentEvents from '../components/dashboard/RecentEvents';
+import AttackChainOverview from '../components/dashboard/AttackChainOverview';
 
 export default function Overview() {
   const events = useEvents();
@@ -23,9 +24,10 @@ export default function Overview() {
 
   const activeIncidents = incidents.filter(i => i.status === 'active' || i.status === 'investigating');
   const alertCount = events.filter(e => e.status === 'new').length;
-  const identityCount = events.filter(e => e.category === 'identity').length;
-  const ehrAnomaliesCount = events.filter(e => e.category === 'ehr').length;
-  const networkEventsCount = events.filter(e => e.category === 'network').length;
+  const activeTelemetry = events.filter(e => e.status === 'new' || e.status === 'acknowledged');
+  const identityCount = activeTelemetry.filter(e => e.category === 'identity').length;
+  const ehrAnomaliesCount = activeTelemetry.filter(e => e.category === 'ehr' && e.metadata.breakGlassApproved !== true && (e.eventType === 'EHR_ACCESS' || e.eventType === 'EHR_BULK_ACCESS')).length;
+  const networkEventsCount = activeTelemetry.filter(e => e.category === 'network').length;
 
   const criticalIncident = incidents.find(i => i.severity === 'critical' && i.status !== 'resolved');
   const recentEvents = selectRecentEvents(events, 6);
@@ -118,7 +120,7 @@ export default function Overview() {
           <MetricCard
             title="ACTIVE INCIDENTS"
             value={activeIncidents.length}
-            trend="+1 active"
+            trend={activeIncidents.length === 0 ? "Baseline stable" : `${activeIncidents.length} active now`}
             trendUp={activeIncidents.length > 0}
             icon={<ShieldAlert className="h-6 w-6 text-[var(--critical)]" />}
           />
@@ -128,8 +130,8 @@ export default function Overview() {
           <MetricCard
             title="SECURITY ALERTS"
             value={alertCount}
-            trend="+6 today"
-            trendUp={true}
+            trend={alertCount === 0 ? "No active alerts" : `${alertCount} active now`}
+            trendUp={alertCount > 0}
             icon={<AlertTriangle className="h-6 w-6 text-[var(--warning)]" />}
           />
         </div>
@@ -138,7 +140,7 @@ export default function Overview() {
           <MetricCard
             title="RISK POSTURE"
             value={`${posture.score}/100`}
-            trend={posture.label}
+            trend={posture.score >= 90 ? "Protected baseline" : `${posture.label} · review needed`}
             trendUp={posture.score < 80}
             icon={<ShieldCheck className="h-6 w-6 text-[var(--positive)]" />}
           />
@@ -148,8 +150,8 @@ export default function Overview() {
           <MetricCard
             title="IDENTITY ANOMALIES"
             value={identityCount}
-            trend="+2 rogue"
-            trendUp={true}
+            trend={identityCount === 0 ? "No active anomalies" : `${identityCount} active anomal${identityCount === 1 ? "y" : "ies"}`}
+            trendUp={identityCount > 0}
             icon={<Users className="h-6 w-6 text-[var(--accent-primary)]" />}
           />
         </div>
@@ -158,8 +160,8 @@ export default function Overview() {
           <MetricCard
             title="EHR ANOMALIES"
             value={ehrAnomaliesCount}
-            trend="Velocity 47/90s"
-            trendUp={true}
+            trend={ehrAnomaliesCount === 0 ? "No active anomalies" : `${ehrAnomaliesCount} active anomaly${ehrAnomaliesCount === 1 ? "" : "ies"}`}
+            trendUp={ehrAnomaliesCount > 0}
             icon={<Activity className="h-6 w-6 text-[var(--critical)]" />}
           />
         </div>
@@ -168,12 +170,15 @@ export default function Overview() {
           <MetricCard
             title="NETWORK EVENTS"
             value={networkEventsCount}
-            trend="Port scans"
-            trendUp={true}
+            trend={networkEventsCount === 0 ? "Baseline quiet" : `${networkEventsCount} detected event${networkEventsCount === 1 ? "" : "s"}`}
+            trendUp={networkEventsCount > 0}
             icon={<Network className="h-6 w-6 text-[var(--accent-secondary)]" />}
           />
         </div>
       </div>
+
+      {/* Multi-vector attack chain */}
+      <AttackChainOverview events={events} incidentActive={Boolean(criticalIncident)} />
 
       {/* Main Grid: Threat Chart & Security Posture */}
       <div className="grid-main">

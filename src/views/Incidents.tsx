@@ -23,6 +23,7 @@ import {
   Mail
 } from 'lucide-react';
 import type { IncidentStatus } from '../store/types';
+import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 
 export default function Incidents() {
   const incidents = useIncidents();
@@ -66,6 +67,18 @@ export default function Incidents() {
   if (activeIncident) {
     const incidentEvents = events.filter(e => activeIncident.eventIds.includes(e.id))
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const incidentUserId = activeIncident.affectedUserId;
+    const relatedNetworkEvent = incidentEvents.find(e => e.category === 'network' && e.deviceId);
+    const derivedDeviceId = relatedNetworkEvent?.deviceId || (
+      relatedNetworkEvent?.metadata?.sourceIP
+        ? state.devices.find(d => d.ip === String(relatedNetworkEvent.metadata.sourceIP))?.id
+        : undefined
+    );
+    const relatedEmailEvent = incidentEvents.find(e => e.category === 'email');
+    const relatedEmail = relatedEmailEvent
+      ? state.emails.find(email => relatedEmailEvent.actor && email.recipientName === relatedEmailEvent.actor && email.status !== 'quarantined')
+        || state.emails.find(email => email.risk === 'high' || email.risk === 'critical')
+      : undefined;
 
     return (
       <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -255,9 +268,12 @@ export default function Incidents() {
                         <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
                           {evt.title}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <DecisionBadge status={deriveDecisionStatus(evt)} />
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                        </div>
                       </div>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                         {evt.description}
@@ -317,27 +333,30 @@ export default function Incidents() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <button
-                  onClick={() => handleAction('Isolate Rogue Device (192.168.1.100)', () => isolateDevice('dev-003'))}
+                  onClick={() => derivedDeviceId && handleAction(`Isolate Device ${derivedDeviceId}`, () => isolateDevice(derivedDeviceId))}
                   className="btn btn-outline"
-                  style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: 'var(--critical)' }}
+                  disabled={!derivedDeviceId}
+                  style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: 'var(--critical)', opacity: derivedDeviceId ? 1 : 0.5 }}
                 >
-                  <ShieldAlert size={16} /> Isolate Simulated Device (dev-003)
+                  <ShieldAlert size={16} /> {derivedDeviceId ? `Isolate Simulated Device (${derivedDeviceId})` : 'No related device signal'}
                 </button>
 
                 <button
-                  onClick={() => handleAction('Flag User Account & Enforce Credential Reset', () => flagUser('dr.sarah'))}
+                  onClick={() => incidentUserId && handleAction('Flag User Account & Enforce Credential Reset', () => flagUser(incidentUserId))}
                   className="btn btn-outline"
-                  style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: 'var(--warning)' }}
+                  disabled={!incidentUserId}
+                  style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: 'var(--warning)', opacity: incidentUserId ? 1 : 0.5 }}
                 >
-                  <User size={16} /> Flag Account & Revoke Active Tokens (dr.sarah)
+                  <User size={16} /> {incidentUserId ? `Flag Account & Revoke Active Tokens (${incidentUserId})` : 'No affected account'}
                 </button>
 
                 <button
-                  onClick={() => handleAction('Quarantine Phishing Email & Malicious Links', () => quarantineEmail('em-001'))}
+                  onClick={() => relatedEmail && handleAction('Quarantine Related Email', () => quarantineEmail(relatedEmail.id))}
                   className="btn btn-outline"
-                  style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem' }}
+                  disabled={!relatedEmail}
+                  style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', opacity: relatedEmail ? 1 : 0.5 }}
                 >
-                  <Mail size={16} /> Quarantine Look-alike Email (em-001)
+                  <Mail size={16} /> {relatedEmail ? `Quarantine Related Email (${relatedEmail.id})` : 'No related email'}
                 </button>
 
                 <button

@@ -264,7 +264,9 @@ export const initialEHRAccesses: SimulatedEHRAccess[] = [
     device: 'ER-CrashCart-Tablet',
     isAnomalous: true,
     isBreakGlass: true,
-    breakGlassApproved: true,
+    breakGlassApproved: false,
+    breakGlassDecision: 'pending',
+    relatedEventId: 'evt-base-02',
     risk: 'medium',
   },
   {
@@ -321,8 +323,8 @@ export const initialEvents: SecurityEvent[] = [
     userId: 'dr.emily',
     system: 'Epic/Cerner EHR Connector',
     status: 'acknowledged',
-    riskContribution: 4,
-    metadata: { patientId: 'pat-2201', protocol: 'Trauma Code Alpha', breakGlassApproved: true },
+    riskContribution: 0,
+    metadata: { patientId: 'pat-2201', protocol: 'Trauma Code Alpha', breakGlassApproved: false, breakGlassDecision: 'pending', accessId: 'ehr-base-03' },
   },
 ];
 

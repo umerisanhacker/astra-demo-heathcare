@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useStore, useEvents, useSetCurrentView } from '../store/store';
+import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
+import { useEvents, useSetCurrentView, useResolveSecurityEvent } from '../store/store';
 import { 
   Link as LinkIcon, 
   ShieldAlert, 
@@ -8,12 +9,11 @@ import {
   ArrowRight,
   Search
 } from 'lucide-react';
-import type { AuditEvent } from '../store/types';
 
 export default function LinkGuard() {
-  const { dispatch } = useStore();
   const events = useEvents();
   const setCurrentView = useSetCurrentView();
+  const resolveSecurityEvent = useResolveSecurityEvent();
 
   const linkEvents = events.filter(e => e.category === 'linkguard');
 
@@ -35,6 +35,7 @@ export default function LinkGuard() {
   } | null>(null);
 
   const [simulatedAction, setSimulatedAction] = useState<string | null>(null);
+  const latestLinkEvent = linkEvents.find(e => e.status === 'new' || e.status === 'acknowledged');
 
   const runAnalysis = (urlToAnalyze: string) => {
     if (!urlToAnalyze.trim()) return;
@@ -102,13 +103,17 @@ export default function LinkGuard() {
     }, 400);
   };
 
-  // Run initial analysis on mount or when an intercepted event arrives
+  // Re-run the inspector whenever the central event stream receives a new
+  // LinkGuard signal. This is what makes Attack Simulator -> LinkGuard a live
+  // workflow instead of a static page.
   useEffect(() => {
-    if (!analysisResult) {
-      const latestUrl = (linkEvents[0]?.metadata?.url as string) || inputUrl;
+    const latestUrl = (linkEvents.find(e => e.status === 'new' || e.status === 'acknowledged')?.metadata?.url as string) || inputUrl;
+    if (latestUrl) {
       setInputUrl(latestUrl);
       runAnalysis(latestUrl);
     }
+    // The dependency intentionally tracks event count: the simulator appends events.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkEvents.length]);
 
   const handleAnalyze = () => {
@@ -122,18 +127,19 @@ export default function LinkGuard() {
 
   const executeAction = (actionName: string) => {
     setSimulatedAction(actionName);
-    
-    const newAudit: AuditEvent = {
-      id: `aud-lg-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      actor: 'Security Analyst (LinkGuard Console)',
-      system: 'LinkGuard Safe-Proxy',
-      action: `Simulated Link Policy: ${actionName} for "${inputUrl}"`,
-      outcome: actionName === 'Block Link' ? 'success' : 'warning',
-      details: `Operator enacted recommended policy ${actionName}. Domain added to DNS sinkhole filter.`,
-    };
+    const eventId = latestLinkEvent?.id;
 
-    dispatch({ type: 'ADD_AUDIT', payload: newAudit });
+    if (eventId) {
+      resolveSecurityEvent(
+        eventId,
+        actionName,
+        `Operator enacted ${actionName} for ${inputUrl}. The finding remains available in the event and audit history.`,
+      );
+    }
+
+    // Once an analyst has chosen a response, remove the active explanation card.
+    // The underlying finding remains visible in historical telemetry/audit views.
+    setAnalysisResult(null);
     setTimeout(() => setSimulatedAction(null), 3000);
   };
 
@@ -166,6 +172,33 @@ export default function LinkGuard() {
         </div>
       )}
 
+      {latestLinkEvent && (
+        <div className="card animate-fade-in" style={{
+          padding: '1rem 1.25rem',
+          background: 'linear-gradient(135deg, rgba(239,68,68,0.07), rgba(14,165,233,0.05))',
+          border: '1px solid rgba(239,68,68,0.28)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--critical-bg)', color: 'var(--critical)', display: 'grid', placeItems: 'center' }}>
+              <ShieldAlert size={19} />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--critical)', letterSpacing: '0.06em' }}>NEW LINKGUARD SIGNAL</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{latestLinkEvent.title}</div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>Central event detected • risk {latestLinkEvent.riskContribution}/25 • investigation ready</div>
+            </div>
+          </div>
+          <button onClick={() => handleInspectEvent(String(latestLinkEvent.metadata?.url || inputUrl))} className="btn btn-danger" style={{ padding: '0.5rem 0.85rem', fontSize: '0.78rem' }}>
+            Inspect Signal <ArrowRight size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Intercepted Links Table (if any link events exist in central state) */}
       <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -175,7 +208,10 @@ export default function LinkGuard() {
               Live Intercepted Healthcare Hyperlinks ({linkEvents.length})
             </h2>
           </div>
-          <span className="badge bg-positive-light">LinkGuard Safe-Proxy Active</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.55rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <DecisionBadge status={latestLinkEvent ? deriveDecisionStatus(latestLinkEvent) : 'allowed'} />
+            <span className="badge bg-positive-light">LinkGuard Safe-Proxy Active</span>
+          </div>
         </div>
 
         {linkEvents.length === 0 ? (
@@ -198,6 +234,7 @@ export default function LinkGuard() {
                   <th style={{ padding: '0.65rem 0.75rem' }}>Target User</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Intercepted URL</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Risk Score</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Decision Status</th>
                   <th style={{ padding: '0.65rem 0.75rem' }}>Action</th>
                 </tr>
               </thead>
@@ -216,7 +253,14 @@ export default function LinkGuard() {
                         {url}
                       </td>
                       <td style={{ padding: '0.65rem 0.75rem' }}>
-                        <span className="badge bg-critical-light">88/100 (CRITICAL)</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', flexWrap: 'wrap' }}>
+                          <span className={`badge ${Number(evt.metadata?.riskScore || 0) >= 80 ? 'bg-critical-light' : Number(evt.metadata?.riskScore || 0) >= 60 ? 'bg-warning-light' : 'bg-positive-light'}`}>
+                            {Number(evt.metadata?.riskScore || 0)}/100 ({evt.severity.toUpperCase()})
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.65rem 0.75rem' }}>
+                        <DecisionBadge status={deriveDecisionStatus(evt)} />
                       </td>
                       <td style={{ padding: '0.65rem 0.75rem' }}>
                         <button

@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useCallback, useRef } from 'react';
+/* eslint-disable react-refresh/only-export-components -- Store intentionally co-locates the provider and its hooks as the single state API. */
+import { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { 
   AppState, 
@@ -152,6 +153,13 @@ export function useAuditLog() {
   return state.auditLog;
 }
 
+export function useResolveSecurityEvent() {
+  const { dispatch } = useStore();
+  return useCallback((eventId: string, action: string, details?: string) => {
+    dispatch({ type: 'RESOLVE_SECURITY_EVENT', payload: { eventId, action, details } });
+  }, [dispatch]);
+}
+
 export function useMarkNotificationsRead() {
   const { dispatch } = useStore();
   return useCallback(() => dispatch({ type: 'MARK_NOTIFICATIONS_READ' }), [dispatch]);
@@ -192,6 +200,13 @@ export function useIsolateDevice() {
   }, [dispatch]);
 }
 
+export function useIsolateNetworkNode() {
+  const { dispatch } = useStore();
+  return useCallback((nodeId: string) => {
+    dispatch({ type: 'ISOLATE_NETWORK_NODE', payload: { nodeId } });
+  }, [dispatch]);
+}
+
 export function useUpdateIncidentStatus() {
   const { dispatch } = useStore();
   return useCallback((incidentId: string, status: IncidentStatus) => {
@@ -216,6 +231,20 @@ export function useApproveBreakGlass() {
   const { dispatch } = useStore();
   return useCallback((accessId: string) => {
     dispatch({ type: 'APPROVE_BREAK_GLASS', payload: { accessId } });
+  }, [dispatch]);
+}
+
+export function useDeclineBreakGlass() {
+  const { dispatch } = useStore();
+  return useCallback((accessId: string) => {
+    dispatch({ type: 'DECLINE_BREAK_GLASS', payload: { accessId } });
+  }, [dispatch]);
+}
+
+export function useCreateIncidentFromEvent() {
+  const { dispatch } = useStore();
+  return useCallback((eventId: string) => {
+    dispatch({ type: 'CREATE_INCIDENT_FROM_EVENT', payload: { eventId } });
   }, [dispatch]);
 }
 
@@ -249,6 +278,12 @@ export function useSimulateAttack() {
 export function useRunFullChain() {
   const { state, dispatch } = useStore();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return useCallback(() => {
     if (state.isRunningChain) return;
@@ -289,7 +324,7 @@ export function useRunFullChain() {
             timestamp: new Date().toISOString(),
             actor: 'CareSentinel Correlation Engine',
             system: 'SOC Correlation Core',
-            action: 'Step 10/11: Multi-vector attack chain fused into critical incident INC-001',
+            action: 'Step 10/11: Multi-vector attack chain fused into a correlated incident',
             outcome: 'success',
             details: 'Linked 9 disparate alerts across Email, IAM, Network, and EHR into unified kill-chain.',
           }
@@ -299,7 +334,7 @@ export function useRunFullChain() {
           payload: {
             id: `not-corr-${Date.now()}`,
             title: 'ATTACK CHAIN FUSED',
-            message: 'All 9 stages correlated across 4 clinical domains. Critical incident INC-001 created.',
+            message: 'All 9 stages correlated across Email, IAM, Network, and EHR telemetry. Final incident identity is resolved from shared state.',
             timestamp: new Date().toISOString(),
             read: false,
             severity: 'critical',
@@ -310,36 +345,8 @@ export function useRunFullChain() {
         currentStepIndex++;
         timerRef.current = setTimeout(executeNextStep, 950);
       } else {
-        // Step 11: Final Incident Created & Completion
-        dispatch({ type: 'SET_ATTACK_CHAIN_PROGRESS', payload: 11 });
-        dispatch({ type: 'SET_RUNNING_CHAIN', payload: false });
-        dispatch({ type: 'SET_SELECTED_INCIDENT', payload: 'INC-001' });
-        dispatch({
-          type: 'ADD_AUDIT',
-          payload: {
-            id: `aud-finish-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            actor: 'Kill-Chain Automator',
-            system: 'SOC Incident Desk',
-            action: 'Step 11/11: Kill-chain complete; Incident INC-001 workspace prepared',
-            outcome: 'success',
-            details: 'Ready for analyst investigation and containment workflows.',
-          }
-        });
-        dispatch({
-          type: 'ADD_NOTIFICATION',
-          payload: {
-            id: `not-complete-${Date.now()}`,
-            title: 'KILL CHAIN COMPLETED',
-            message: 'All 11 phases executed and correlated. Opening Incident INC-001.',
-            timestamp: new Date().toISOString(),
-            read: false,
-            severity: 'critical',
-            relatedIncidentId: 'INC-001',
-            targetView: 'Incidents',
-          }
-        });
-        dispatch({ type: 'SET_VIEW', payload: 'Incidents' });
+        // Step 11: Let the reducer resolve the actual correlated incident ID from current state.
+        dispatch({ type: 'FINALIZE_ATTACK_CHAIN' });
       }
     };
 

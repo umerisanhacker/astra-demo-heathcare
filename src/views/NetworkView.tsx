@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   useEvents, 
-  useStore 
+  useStore,
+  useIsolateNetworkNode 
 } from '../store/store';
 import { 
   Network, 
@@ -16,13 +17,16 @@ import type { NetworkTelemetryNode } from '../store/types';
 export default function NetworkView() {
   const events = useEvents();
   const { state } = useStore();
+  const isolateNetworkNode = useIsolateNetworkNode();
 
-  const [selectedNode, setSelectedNode] = useState<NetworkTelemetryNode>(state.networkNodes[2] || state.networkNodes[0]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>(state.networkNodes[2]?.id || state.networkNodes[0]?.id || '');
+  const selectedNode = state.networkNodes.find(node => node.id === selectedNodeId) || state.networkNodes[0];
   const [isolationNotice, setIsolationNotice] = useState<string | null>(null);
 
-  const networkEvents = events.filter(e => e.category === 'network');
+  const networkEvents = events.filter(e => e.category === 'network' && (e.status === 'new' || e.status === 'acknowledged'));
 
   const handleIsolateNode = (node: NetworkTelemetryNode) => {
+    isolateNetworkNode(node.id);
     setIsolationNotice(`Node ${node.name} (${node.ip}) isolated into synthetic Quarantine VLAN.`);
     setTimeout(() => setIsolationNotice(null), 3500);
   };
@@ -89,12 +93,12 @@ export default function NetworkView() {
           </svg>
 
           {state.networkNodes.map((node) => {
-            const isSelected = selectedNode.id === node.id;
+            const isSelected = selectedNode?.id === node.id;
             const hasAlert = node.status === 'alert';
             return (
               <button
                 key={node.id}
-                onClick={() => setSelectedNode(node)}
+                onClick={() => setSelectedNodeId(node.id)}
                 style={{
                   position: 'relative',
                   zIndex: 10,
@@ -134,9 +138,7 @@ export default function NetworkView() {
                 </div>
 
                 {hasAlert && (
-                  <span className="badge bg-critical-light" style={{ position: 'absolute', top: '-8px', right: '-8px', fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
-                    ALERT
-                  </span>
+                  <DecisionBadge status="pending" />
                 )}
               </button>
             );
@@ -150,19 +152,22 @@ export default function NetworkView() {
         <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
             <div>
-              <span className={`badge ${selectedNode.status === 'alert' ? 'bg-critical-light' : 'bg-positive-light'}`} style={{ marginBottom: '0.35rem' }}>
-                STATUS: {selectedNode.status.toUpperCase()}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.35rem' }}>
+              <DecisionBadge status={selectedNode?.status === 'isolated' ? 'isolated' : selectedNode?.status === 'alert' ? 'pending' : 'allowed'} />
+              <span className="badge bg-accent-light">
+                NODE: {selectedNode?.status?.toUpperCase() || 'UNKNOWN'}
               </span>
+            </div>
               <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {selectedNode.name}
+                {selectedNode?.name || 'No network node selected'}
               </h3>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                IP Address: <strong>{selectedNode.ip}</strong> • Interface: eth0
+                IP Address: <strong>{selectedNode?.ip || '—'}</strong> • Interface: eth0
               </div>
             </div>
 
             <button
-              onClick={() => handleIsolateNode(selectedNode)}
+              onClick={() => selectedNode && handleIsolateNode(selectedNode)}
               className="btn btn-outline"
               style={{ color: 'var(--critical)', borderColor: 'rgba(239, 68, 68, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
             >
@@ -174,7 +179,7 @@ export default function NetworkView() {
             <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Throughput Rate</div>
               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
-                {selectedNode.trafficRate}
+                {selectedNode?.trafficRate || '—'}
               </div>
             </div>
             <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>

@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { 
   useEHRAccesses, 
+  useEvents,
   usePatients, 
   useApproveBreakGlass, 
-  useSelectIncident, 
+  useDeclineBreakGlass,
+  useResolveSecurityEvent,
+  useCreateIncidentFromEvent,
   useSetCurrentView 
 } from '../store/store';
+import { DecisionBadge } from '../components/security/DecisionBadge';
 import { 
   Key, 
   CheckCircle2, 
@@ -14,19 +18,36 @@ import {
 
 export default function EHRSecurity() {
   const ehrAccesses = useEHRAccesses();
+  const events = useEvents();
   const patients = usePatients();
   const approveBreakGlass = useApproveBreakGlass();
-  const selectIncident = useSelectIncident();
+  const declineBreakGlass = useDeclineBreakGlass();
+  const resolveSecurityEvent = useResolveSecurityEvent();
+  const createIncidentFromEvent = useCreateIncidentFromEvent();
   const setCurrentView = useSetCurrentView();
 
   const [activeTab, setActiveTab] = useState<'access_logs' | 'velocity' | 'break_glass' | 'patients'>('access_logs');
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
   const breakGlassSessions = ehrAccesses.filter(a => a.isBreakGlass);
+  const pendingBreakGlassSessions = breakGlassSessions.filter(a => a.breakGlassDecision === 'pending' || (!a.breakGlassApproved && a.breakGlassDecision !== 'declined'));
+  const anomalousAccesses = ehrAccesses.filter(a => {
+    if (!a.isAnomalous || a.isBreakGlass) return false;
+    if (!a.relatedEventId) return true;
+    return events.some(e => e.id === a.relatedEventId && (e.status === 'new' || e.status === 'acknowledged'));
+  });
+  const latestAnomaly = anomalousAccesses[0];
+
 
   const handleApproveBreakGlass = (accessId: string) => {
     approveBreakGlass(accessId);
-    setApprovalFeedback(`Break-glass access for session ${accessId} officially approved and committed to compliance audit ledger.`);
+    setApprovalFeedback(`Break-glass access for session ${accessId} officially approved and committed to the compliance audit ledger.`);
+    setTimeout(() => setApprovalFeedback(null), 3500);
+  };
+
+  const handleDeclineBreakGlass = (accessId: string) => {
+    declineBreakGlass(accessId);
+    setApprovalFeedback(`Break-glass access for session ${accessId} was declined and recorded for compliance review.`);
     setTimeout(() => setApprovalFeedback(null), 3500);
   };
 
@@ -54,7 +75,7 @@ export default function EHRSecurity() {
           {[
             { id: 'access_logs', label: 'Access Logs' },
             { id: 'velocity', label: 'Bulk Access Velocity' },
-            { id: 'break_glass', label: `Break-Glass (${breakGlassSessions.length})` },
+            { id: 'break_glass', label: `Break-Glass${pendingBreakGlassSessions.length ? ` (${pendingBreakGlassSessions.length})` : ''}` },
             { id: 'patients', label: 'Synthetic Patients' },
           ].map(tab => (
             <button
@@ -93,90 +114,114 @@ export default function EHRSecurity() {
         </div>
       )}
 
-      {/* SECTION 25: BULK ACCESS DETECTION VELOCITY GAUGE (Prominently featured) */}
-      <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white', borderLeft: '4px solid var(--critical)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
-          <div>
-            <span className="badge bg-critical-light" style={{ marginBottom: '0.35rem' }}>
-              ACCESS VELOCITY ANOMALY DETECTED
-            </span>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--critical)' }}>
-              Bulk Patient Chart Exfiltration Velocity
-            </h2>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Clinical velocity tripwire breached by account: <strong>dr.sarah</strong> (Hospital Workstation 04 / Unknown Device 192.168.1.100)
+      {/* Live clinical-access posture */}
+      {latestAnomaly ? (
+        <div className="card network-glow" style={{ padding: '1.75rem', backgroundColor: 'white', borderLeft: '4px solid var(--critical)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
+              <span className="badge bg-critical-light" style={{ marginBottom: '0.35rem' }}>
+                ACCESS VELOCITY ANOMALY DETECTED
+              </span>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--critical)' }}>
+                Bulk Patient Chart Access Requires Review
+              </h2>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                Latest synthetic anomaly: <strong>{latestAnomaly.doctorName}</strong> → {latestAnomaly.patientName} • {latestAnomaly.device}
+              </div>
             </div>
+
+            <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    if (latestAnomaly?.relatedEventId) {
+                      createIncidentFromEvent(latestAnomaly.relatedEventId);
+                    } else {
+                      setCurrentView('Incidents');
+                    }
+                  }}
+                  className="btn btn-primary"
+                  style={{ backgroundColor: 'var(--critical)', fontSize: '0.85rem' }}
+                >
+                  Open SOC Investigation <ArrowRight size={15} />
+                </button>
+                {latestAnomaly?.relatedEventId && (
+                  <button
+                    onClick={() => {
+                      resolveSecurityEvent(
+                        latestAnomaly.relatedEventId!,
+                        'EHR anomaly reviewed',
+                        'Synthetic clinical access anomaly reviewed by the SOC operator.'
+                      );
+                    }}
+                    className="btn btn-outline"
+                    style={{ fontSize: '0.85rem', borderColor: 'rgba(16,185,129,.4)', color: 'var(--positive)' }}
+                  >
+                    <CheckCircle2 size={15} /> Mark Reviewed
+                  </button>
+                )}
+              </div>
           </div>
 
-          <button
-            onClick={() => {
-              selectIncident('INC-001');
-              setCurrentView('Incidents');
-            }}
-            className="btn btn-primary"
-            style={{ backgroundColor: 'var(--critical)', fontSize: '0.85rem' }}
-          >
-            Investigate Incident INC-001 <ArrowRight size={15} />
-          </button>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1.25rem',
+            backgroundColor: 'var(--bg-main)',
+            padding: '1.35rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+          }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Detection Reason
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--critical)', marginTop: '.25rem' }}>
+                {latestAnomaly.patientName.includes('47') ? '47 records / 90 seconds' : 'Relationship anomaly'}
+              </div>
+              <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+                {latestAnomaly.accessReason}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Policy Context
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '.25rem' }}>
+                {latestAnomaly.relationship === 'Unrelated' ? 'Unrelated clinical relationship' : 'Review required'}
+              </div>
+              <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+                CareSentinel records the evidence before an operator chooses a response.
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Active Synthetic Anomalies
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--critical)', marginTop: '.25rem' }}>
+                {anomalousAccesses.length}
+              </div>
+              <div style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+                Derived from the shared security event state.
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* Velocity Gauge Comparison */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '1.5rem',
-          backgroundColor: 'var(--bg-main)',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid var(--border)',
-          marginBottom: '1.25rem',
-        }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Normal Attending Baseline
+      ) : (
+        <div className="card network-glow" style={{ padding: '1.5rem', borderLeft: '4px solid var(--positive)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.8rem' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--positive-bg)', color: 'var(--positive)' }}>
+              <CheckCircle2 size={22} />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--positive)', marginTop: '0.2rem' }}>
-              5 records <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ 30 minutes</span>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
-              Routine clinical chart review pacing for scheduled morning ward rounds.
-            </div>
-          </div>
-
-          <div style={{ borderLeft: '2px solid var(--border)', paddingLeft: '1.5rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--critical)', textTransform: 'uppercase' }}>
-              Observed Exfiltration Rate (Anomalous)
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--critical)', marginTop: '0.2rem' }}>
-              47 records <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ 90 seconds</span>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--critical)', fontWeight: 600, marginTop: '0.3rem' }}>
-              9.4x above maximum permissible clinical query threshold.
+            <div>
+              <div className="badge bg-positive-light" style={{ marginBottom: '.3rem' }}>CLINICAL ACCESS BASELINE NORMAL</div>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>No active synthetic EHR anomalies</h2>
+              <p style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.2rem' }}>
+                Break-glass access is reviewed separately from malicious EHR activity; pending sessions require an explicit approve or decline decision.
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Explainable Reasons */}
-        <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-            Velocity Anomaly Attribution Factors:
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Abnormally high access rate (47 charts / 90s)
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Multiple unrelated patient MRNs accessed
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Unusual off-hours window (03:17)
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ color: 'var(--critical)' }}>⚠</span> Originated from unmanaged rogue device
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* TAB CONTENT */}
       {activeTab === 'access_logs' && (
@@ -264,9 +309,12 @@ export default function EHRSecurity() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <span className="badge bg-warning-light" style={{ marginBottom: '0.35rem' }}>
-                      {session.breakGlassApproved ? 'BREAK-GLASS REVIEWED & APPROVED' : 'BREAK-GLASS ACTIVE — PENDING COMPLIANCE REVIEW'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.35rem' }}>
+                      <DecisionBadge status={session.breakGlassDecision === 'approved' ? 'approved' : session.breakGlassDecision === 'declined' ? 'declined' : 'pending'} />
+                      <span className="badge bg-warning-light">
+                        {session.breakGlassDecision === 'approved' ? 'BREAK-GLASS VERIFIED' : session.breakGlassDecision === 'declined' ? 'BREAK-GLASS REJECTED' : 'BREAK-GLASS PENDING REVIEW'}
+                      </span>
+                    </div>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                       Emergency Access: {session.doctorName} &rarr; {session.patientName}
                     </h4>
@@ -275,14 +323,23 @@ export default function EHRSecurity() {
                     </div>
                   </div>
 
-                  {!session.breakGlassApproved && (
-                    <button
-                      onClick={() => handleApproveBreakGlass(session.id)}
-                      className="btn btn-primary"
-                      style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', backgroundColor: 'var(--positive)' }}
-                    >
-                      <CheckCircle2 size={15} /> Approve Clinical Justification
-                    </button>
+                  {session.breakGlassDecision !== 'approved' && session.breakGlassDecision !== 'declined' && (
+                    <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => handleApproveBreakGlass(session.id)}
+                        className="btn btn-primary"
+                        style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', backgroundColor: 'var(--positive)' }}
+                      >
+                        <CheckCircle2 size={15} /> Authenticate & Approve
+                      </button>
+                      <button
+                        onClick={() => handleDeclineBreakGlass(session.id)}
+                        className="btn btn-outline"
+                        style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', borderColor: 'rgba(239,68,68,.4)', color: 'var(--critical)' }}
+                      >
+                        Decline / Reject
+                      </button>
+                    </div>
                   )}
                 </div>
 

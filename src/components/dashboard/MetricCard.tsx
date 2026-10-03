@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 interface MetricCardProps {
   title: string;
@@ -10,29 +10,62 @@ interface MetricCardProps {
 }
 
 export default function MetricCard({ title, value, trend, trendUp, icon }: MetricCardProps) {
+  const isNeutral = trend === 'Baseline stable' || trend === 'No active alerts' || trend === 'No active anomalies' || trend === 'Baseline quiet';
+
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6 hover-lift transition-all">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-[var(--text-secondary)]">{title}</p>
-          <p className="text-2xl font-semibold text-[var(--text-primary)] mt-2">{value}</p>
+    <div className="card metric-card" style={{ padding: '1.1rem 1.15rem', background: 'rgba(255,255,255,.92)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '.75rem' }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontSize: '.67rem', fontWeight: 800, letterSpacing: '.07em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            {title}
+          </p>
+          <p style={{ fontSize: '1.7rem', lineHeight: 1.05, fontWeight: 800, color: 'var(--text-primary)', marginTop: '.55rem', letterSpacing: '-.035em' }}>
+            {value}
+          </p>
         </div>
-        <div className="p-3 bg-[var(--bg-tertiary)] rounded-lg">
+
+        <div style={{
+          width: 40,
+          height: 40,
+          flex: '0 0 auto',
+          display: 'grid',
+          placeItems: 'center',
+          borderRadius: 12,
+          background: 'linear-gradient(145deg, #f4f9fc, #eaf3f8)',
+          border: '1px solid rgba(8,126,164,.08)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.9)',
+        }}>
           {icon}
         </div>
       </div>
-      <div className="mt-4 flex items-center">
-        {trendUp ? (
-          <ArrowUpRight className="h-4 w-4 text-[var(--critical)] mr-1" />
+
+      <div style={{
+        marginTop: '.85rem',
+        paddingTop: '.7rem',
+        borderTop: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '.3rem',
+        minHeight: 25,
+      }}>
+        {isNeutral ? (
+          <Minus size={14} color="var(--text-muted)" />
+        ) : trendUp ? (
+          <ArrowUpRight size={14} color="var(--critical)" />
         ) : (
-          <ArrowDownRight className="h-4 w-4 text-[var(--success)] mr-1" />
+          <ArrowDownRight size={14} color="var(--positive)" />
         )}
-        <span className={`text-sm font-medium ${trendUp ? 'text-[var(--critical)]' : 'text-[var(--success)]'}`}>
+        <span style={{
+          fontSize: '.72rem',
+          fontWeight: 700,
+          color: isNeutral ? 'var(--text-secondary)' : trendUp ? 'var(--critical)' : 'var(--positive)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
           {trend}
         </span>
-        <span className="text-sm text-[var(--text-muted)] ml-2">vs last week</span>
       </div>
     </div>
   );
 }
-

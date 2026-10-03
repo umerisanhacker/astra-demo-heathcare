@@ -1,8 +1,147 @@
 import type { AppState, AuditEvent, AppNotification, SecurityEvent, SimulatedEmail, SimulatedEHRAccess } from './types';
 import type { Action } from './actions';
 import { calculatePosture } from './riskEngine';
-import { correlateEvents } from './correlationEngine';
+import { correlateEvents, calculateIncidentRisk } from './correlationEngine';
 import { createInitialBaseline } from './initialData';
+
+function responseStatusForAction(actionName: string): SecurityEvent['responseStatus'] {
+  const action = actionName.toLowerCase();
+  if (action.includes('quarantine')) return 'quarantined';
+  if (action.includes('block')) return 'blocked';
+  if (action.includes('allow') || action.includes('release')) return 'allowed';
+  if (action.includes('approve')) return 'approved';
+  if (action.includes('decline') || action.includes('reject')) return 'declined';
+  if (action.includes('isolate')) return 'isolated';
+  if (action.includes('contain')) return 'contained';
+  if (action.includes('review')) return 'reviewed';
+  return 'resolved';
+}
+
+function synchronizeIncidentStatuses(incidents: AppState['incidents'], events: SecurityEvent[]): AppState['incidents'] {
+  const now = new Date().toISOString();
+  return incidents.map(incident => {
+    if (incident.status === 'resolved') return incident;
+    const hasActiveSignal = incident.eventIds.some(id =>
+      events.some(event =>
+        event.id === id &&
+        (event.status === 'new' || event.status === 'acknowledged')
+      )
+    );
+    return hasActiveSignal
+      ? incident
+      : { ...incident, status: 'resolved' as const, updatedAt: now };
+  });
+}
+
+function resolveSecurityEvent(state: AppState, eventId: string, actionName: string, details?: string): AppState {
+  const target = state.events.find(event => event.id === eventId);
+  if (!target) return state;
+
+  const updatedEvents = state.events.map(event =>
+    event.id === eventId
+      ? { ...event, status: 'resolved' as const, responseStatus: responseStatusForAction(actionName) }
+      : event
+  );
+
+  const updatedIncidents = synchronizeIncidentStatuses(state.incidents, updatedEvents);
+
+  const now = new Date().toISOString();
+  const audit: AuditEvent = {
+    id: 'aud-response-' + Date.now(),
+    timestamp: now,
+    actor: 'SOC Analyst',
+    system: target.system,
+    action: 'Response completed: ' + actionName,
+    outcome: 'success',
+    relatedEventId: eventId,
+    details: details || target.description,
+  };
+
+  const resolvedIncidentIds = new Set(updatedIncidents.filter(i => i.status === 'resolved').map(i => i.id));
+  const remainingNotifications = state.notifications.filter(
+    notification => notification.relatedEventId !== eventId &&
+      (!notification.relatedIncidentId || !resolvedIncidentIds.has(notification.relatedIncidentId))
+  );
+
+  return {
+    ...state,
+    events: updatedEvents,
+    incidents: updatedIncidents,
+    securityPosture: calculatePosture(updatedEvents),
+    notifications: remainingNotifications,
+    auditLog: [audit, ...state.auditLog],
+  };
+}
+
+function createIncidentFromEvent(state: AppState, eventId: string): AppState {
+  const event = state.events.find(e => e.id === eventId);
+  if (!event) return state;
+
+  const existing = state.incidents.find(incident =>
+    incident.eventIds.includes(eventId) &&
+    incident.status !== 'resolved'
+  );
+  if (existing) {
+    return {
+      ...state,
+      selectedIncidentId: existing.id,
+      currentView: 'Incidents',
+      appMode: 'console',
+    };
+  }
+
+  const now = new Date().toISOString();
+  const riskScore = calculateIncidentRisk([event.id], state.events);
+  const incidentId = `INC-SIG-${Date.now().toString().slice(-8)}`;
+  const incident = {
+    id: incidentId,
+    title: `Identity Signal Investigation — ${event.actor || event.userId || 'Affected Account'}`,
+    severity: event.severity,
+    status: 'investigating' as const,
+    affectedUserId: event.userId,
+    affectedSystems: [event.system],
+    eventIds: [event.id],
+    riskScore,
+    riskFactors: [{
+      id: `rf-${event.id}`,
+      label: event.title,
+      deduction: event.riskContribution || 15,
+      eventId: event.id,
+      category: event.category,
+    }],
+    createdAt: now,
+    updatedAt: now,
+    description: `Analyst-initiated SOC investigation opened from the ${event.eventType} signal. The signal remains linked to the original telemetry and audit trail.`,
+    assignedInvestigator: 'SOC Analyst L2 (Synthetic)',
+    recommendedActions: [
+      'Review authentication context and device identity',
+      'Validate session timing and network origin',
+      'Revoke or reset credentials if compromise is confirmed',
+      'Review correlated EHR and application activity',
+    ],
+    notes: [{
+      id: `note-signal-${Date.now()}`,
+      author: 'SOC Workspace',
+      timestamp: now,
+      text: `Investigation opened directly from security signal ${event.id}; no automatic multi-vector incident existed yet.`,
+    }],
+  };
+
+  const notifications = state.notifications.map(notification =>
+    notification.relatedEventId === event.id
+      ? { ...notification, relatedIncidentId: incidentId }
+      : notification
+  );
+
+  return {
+    ...state,
+    incidents: [incident, ...state.incidents],
+    notifications,
+    selectedIncidentId: incidentId,
+    currentView: 'Incidents',
+    appMode: 'console',
+  };
+}
 
 export function rootReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -23,6 +162,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       let updatedUsers = [...state.users];
       let updatedDevices = [...state.devices];
       let updatedNetworkNodes = [...state.networkNodes];
+      let updatedAttachments = [...state.attachments];
 
       switch (simulationType) {
         case 'Phishing':
@@ -79,6 +219,29 @@ export function rootReducer(state: AppState, action: Action): AppState {
             attachments: ['patient_billing_manifest.zip'],
           };
           updatedEmails = [newEmail, ...updatedEmails];
+
+          // Phishing mail carries a synthetic attachment so the same simulation
+          // propagates into Attachment Security without requiring a second click.
+          const newAttachment = {
+            id: `att-sim-${Date.now()}`,
+            filename: 'patient_billing_manifest.zip',
+            extension: '.zip' as const,
+            detectedType: 'ZIP Archive (Synthetic)',
+            size: '2.8 MB',
+            hash: '7b3d4f0f8c2a9e11b8d4a7c1f0e6aa2c1d5f8b3e6c9a0d2f4b7e1c3a5d9f0b2',
+            archiveDepth: 2,
+            nestedFilesCount: 7,
+            compressionRatio: 'HIGH' as const,
+            executableContent: true,
+            scriptIndicators: true,
+            riskScore: 91,
+            decision: 'SUSPICIOUS' as const,
+            uploadedAt: timestamp,
+            sender: 'hospital-billing@hospital-support.example',
+          };
+          // Attach it to the synthetic inbox event so Email Security and
+          // Attachment Security tell the same story.
+          updatedAttachments = [newAttachment, ...updatedAttachments];
           break;
         }
 
@@ -157,7 +320,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             system: 'Internal Clinical Firewall',
             status: 'new',
             riskContribution: 15,
-            metadata: { sourceIP: '10.0.0.45', rate: '520 pkts/sec', scannedPorts: '22, 80, 443, 8080, 8443' },
+            metadata: { sourceIP: '10.0.0.45', targetNodeId: 'node-fw', rate: '520 pkts/sec', scannedPorts: '22, 80, 443, 8080, 8443' },
           };
           auditAction = 'Simulated port scan pattern registered in NIDS';
           notifTitle = 'Clinical Subnet Port Scan Detected';
@@ -185,7 +348,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             system: 'DMZ Reverse Proxy',
             status: 'new',
             riskContribution: 16,
-            metadata: { attempts: 140, window: '60s', rateLimitTriggered: true },
+            metadata: { attempts: 140, targetNodeId: 'node-dmz', window: '60s', rateLimitTriggered: true },
           };
           auditAction = 'Simulated brute-force sequence logged and rate-limited';
           notifTitle = 'Brute Force Attempt Detected';
@@ -254,7 +417,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             system: 'Clinical API Gateway',
             status: 'new',
             riskContribution: 16,
-            metadata: { endpoint: '/synthetic-api/patient-records', pattern: 'Parameter tampering' },
+            metadata: { endpoint: '/synthetic-api/patient-records', targetNodeId: 'node-app', pattern: 'Parameter tampering' },
           };
           auditAction = 'Simulated application security probe registered on clinical API endpoint';
           notifTitle = 'API Access Anomaly Detected';
@@ -304,6 +467,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             isAnomalous: true,
             isBreakGlass: false,
             risk: 'critical',
+            relatedEventId: eventId,
           };
           updatedEHRAccesses = [newEHRAccess, ...updatedEHRAccesses];
           break;
@@ -347,13 +511,90 @@ export function rootReducer(state: AppState, action: Action): AppState {
             isAnomalous: true,
             isBreakGlass: false,
             risk: 'critical',
+            relatedEventId: eventId,
           };
           updatedEHRAccesses = [newEHRAccess, ...updatedEHRAccesses];
           break;
         }
       }
 
-      const newEvents = [event, ...state.events];
+      // A phishing simulation is a multi-signal delivery event: the same synthetic
+      // message contains a suspicious URL and a suspicious attachment. Emit those
+      // downstream telemetry records into the same central event stream so each
+      // security module immediately reflects the exact same simulation.
+      const generatedEvents: SecurityEvent[] = [event];
+      const generatedNotifications: AppNotification[] = [];
+
+      if (simulationType === 'Phishing' || simulationType === 'SIMULATE PHISHING') {
+        const linkEvent: SecurityEvent = {
+          id: `${eventId}-link`,
+          timestamp,
+          eventType: 'SUSPICIOUS_LINK',
+          category: 'linkguard',
+          severity: 'critical',
+          title: 'Malicious URL Found Inside Phishing Email',
+          description: 'LinkGuard extracted the credential-harvesting URL from the simulated phishing message.',
+          source: 'LinkGuard Email Connector',
+          actor: 'Dr. Sarah Wilson',
+          userId: 'dr.sarah',
+          system: 'LinkGuard Safe-Proxy',
+          status: 'new',
+          riskContribution: 18,
+          metadata: {
+            url: 'https://secure-hospital-login.example/account',
+            domain: 'secure-hospital-login.example',
+            riskScore: 88,
+            decision: 'BLOCK',
+            parentEventId: eventId,
+          },
+        };
+        const attachmentEvent: SecurityEvent = {
+          id: `${eventId}-attachment`,
+          timestamp,
+          eventType: 'ATTACHMENT_ANALYZED',
+          category: 'email',
+          severity: 'high',
+          title: 'Suspicious Phishing Attachment Detected',
+          description: 'Static inspection found executable/script indicators in patient_billing_manifest.zip.',
+          source: 'Attachment Sentinel',
+          actor: 'Dr. Sarah Wilson',
+          userId: 'dr.sarah',
+          system: 'Attachment Security Scanner',
+          status: 'new',
+          riskContribution: 12,
+          metadata: {
+            filename: 'patient_billing_manifest.zip',
+            decision: 'SUSPICIOUS',
+            riskScore: 91,
+            parentEventId: eventId,
+          },
+        };
+        generatedEvents.push(linkEvent, attachmentEvent);
+        generatedNotifications.push(
+          {
+            id: `${eventId}-notif-link`,
+            title: 'LinkGuard Signal Generated',
+            message: 'Suspicious credential-harvesting URL extracted from the simulated phishing email.',
+            timestamp,
+            read: false,
+            severity: 'critical',
+            relatedEventId: linkEvent.id,
+            targetView: 'LinkGuard',
+          },
+          {
+            id: `${eventId}-notif-attachment`,
+            title: 'Attachment Sentinel Signal Generated',
+            message: 'patient_billing_manifest.zip requires static security inspection.',
+            timestamp,
+            read: false,
+            severity: 'high',
+            relatedEventId: attachmentEvent.id,
+            targetView: 'Attachments',
+          }
+        );
+      }
+
+      const newEvents = [...generatedEvents, ...state.events];
       const newIncidents = correlateEvents(newEvents, state.incidents);
       const newPosture = calculatePosture(newEvents);
 
@@ -385,13 +626,18 @@ export function rootReducer(state: AppState, action: Action): AppState {
         incidents: newIncidents,
         securityPosture: newPosture,
         emails: updatedEmails,
+        attachments: updatedAttachments,
         ehrAccesses: updatedEHRAccesses,
         users: updatedUsers,
         devices: updatedDevices,
         networkNodes: updatedNetworkNodes,
-        notifications: [newNotif, ...state.notifications],
+        notifications: [...generatedNotifications, newNotif, ...state.notifications],
         auditLog: [newAudit, ...state.auditLog],
       };
+    }
+
+    case 'RESOLVE_SECURITY_EVENT': {
+      return resolveSecurityEvent(state, action.payload.eventId, action.payload.action, action.payload.details);
     }
 
     case 'ADD_EVENT': {
@@ -454,6 +700,52 @@ export function rootReducer(state: AppState, action: Action): AppState {
     case 'SET_RUNNING_CHAIN':
       return { ...state, isRunningChain: action.payload };
 
+    case 'FINALIZE_ATTACK_CHAIN': {
+      const activeIncident = [...state.incidents]
+        .filter(i => i.status !== 'resolved')
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+
+      const now = new Date().toISOString();
+      const incidentId = activeIncident?.id;
+      const audit: AuditEvent = {
+        id: `aud-finish-${Date.now()}`,
+        timestamp: now,
+        actor: 'Kill-Chain Automator',
+        system: 'SOC Incident Desk',
+        action: incidentId
+          ? `Step 11/11: Kill-chain complete; Incident ${incidentId} workspace prepared`
+          : 'Step 11/11: Kill-chain complete; no active incident was synthesized',
+        outcome: incidentId ? 'success' : 'warning',
+        details: incidentId
+          ? 'Ready for analyst investigation and containment workflows.'
+          : 'Telemetry was generated successfully but the correlation engine did not produce an active incident.',
+      };
+
+      const notification: AppNotification = {
+        id: `not-complete-${Date.now()}`,
+        title: incidentId ? 'KILL CHAIN COMPLETED' : 'KILL CHAIN COMPLETED — REVIEW TELEMETRY',
+        message: incidentId
+          ? `All attack stages executed and correlated. Opening Incident ${incidentId}.`
+          : 'All attack stages executed. Review the active security telemetry in the SOC workspace.',
+        timestamp: now,
+        read: false,
+        severity: incidentId ? 'critical' : 'high',
+        relatedIncidentId: incidentId,
+        targetView: 'Incidents',
+      };
+
+      return {
+        ...state,
+        attackChainProgress: 11,
+        isRunningChain: false,
+        selectedIncidentId: incidentId || null,
+        currentView: 'Incidents',
+        appMode: 'console',
+        notifications: [notification, ...state.notifications],
+        auditLog: [audit, ...state.auditLog],
+      };
+    }
+
     case 'SET_SEARCH':
       return { ...state, searchQuery: action.payload };
 
@@ -492,16 +784,6 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: reason || 'Isolated by operator due to malicious threat score.',
       };
-      const newNotif: AppNotification = {
-        id: `not-${Date.now()}`,
-        title: 'Email Quarantined',
-        message: `Message "${target?.subject || emailId}" isolated in security vault.`,
-        timestamp: new Date().toISOString(),
-        read: false,
-        severity: 'low',
-        targetView: 'Email Security',
-      };
-
       const updatedEmails = state.emails.map(e => 
         e.id === emailId ? { ...e, status: 'quarantined' as const } : e
       );
@@ -509,7 +791,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       // Also mark any related email events as resolved
       const updatedEvents = state.events.map(ev => 
         (ev.category === 'email' && ev.userId === target?.recipient?.split('@')[0])
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'quarantined' as const }
           : ev
       );
 
@@ -517,9 +799,10 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ...state,
         emails: updatedEmails,
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         auditLog: [newAudit, ...state.auditLog],
-        notifications: [newNotif, ...state.notifications],
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
       };
     }
 
@@ -535,9 +818,18 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Analyst reviewed email body and false-positive indicators.',
       };
+      const releasedEvents = state.events.map(ev =>
+        ev.category === 'email' && ev.userId === target?.recipient?.split('@')[0]
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'allowed' as const }
+          : ev
+      );
       return {
         ...state,
         emails: state.emails.map(e => e.id === emailId ? { ...e, status: 'inbox' as const } : e),
+        events: releasedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, releasedEvents),
+        securityPosture: calculatePosture(releasedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !releasedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -554,11 +846,20 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Dynamic execution flagged malicious archive structure.',
       };
+      const updatedEvents = state.events.map(ev =>
+        ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status !== 'resolved'
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'quarantined' as const }
+          : ev
+      );
       return {
         ...state,
         attachments: state.attachments.map(a => 
           a.id === attachmentId ? { ...a, decision: 'QUARANTINED' as const } : a
         ),
+        events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -575,9 +876,18 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Active SSO sessions revoked. Mandatory MFA re-enrollment required.',
       };
+      const updatedEvents = state.events.map(ev =>
+        ev.userId === userId && ev.category === 'identity' && ev.status !== 'resolved'
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'reviewed' as const }
+          : ev
+      );
       return {
         ...state,
         users: state.users.map(u => u.id === userId ? { ...u, status: 'flagged' as const } : u),
+        events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.userId === userId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -602,9 +912,18 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Endpoint severed from clinical VLAN 5. Traffic redirected to blackhole sandbox.',
       };
+      const updatedEvents = state.events.map(ev =>
+        (ev.deviceId === deviceId || (ev.category === 'network' && String(ev.metadata.sourceIP || '') === dev?.ip)) && ev.status !== 'resolved'
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'isolated' as const }
+          : ev
+      );
       return {
         ...state,
         devices: state.devices.map(d => d.id === deviceId ? { ...d, status: 'isolated' as const } : d),
+        events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.deviceId === deviceId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -614,6 +933,46 @@ export function rootReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         devices: state.devices.map(d => d.id === deviceId ? { ...d, status: 'online' as const } : d),
+      };
+    }
+
+    case 'ISOLATE_NETWORK_NODE': {
+      const { nodeId } = action.payload;
+      const node = state.networkNodes.find(n => n.id === nodeId);
+      if (!node) return state;
+
+      const updatedEvents = state.events.map(ev =>
+        ev.category === 'network' &&
+        ev.status !== 'resolved' &&
+        (
+          ev.metadata.targetNodeId === nodeId ||
+          ev.metadata.sourceIP === node.ip
+        )
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'isolated' as const }
+          : ev
+      );
+      const now = new Date().toISOString();
+      const audit: AuditEvent = {
+        id: `aud-node-isolate-${Date.now()}`,
+        timestamp: now,
+        actor: 'SOC Network Defender',
+        system: 'Network Access Control (NAC)',
+        action: `Isolated network node: ${node.name}`,
+        outcome: 'success',
+        details: `Synthetic node ${node.ip} moved to quarantine state.`,
+      };
+
+      return {
+        ...state,
+        networkNodes: state.networkNodes.map(n => n.id === nodeId ? { ...n, status: 'isolated' as const } : n),
+        events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n =>
+          !n.relatedEventId ||
+          !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')
+        ),
+        auditLog: [audit, ...state.auditLog],
       };
     }
 
@@ -634,7 +993,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       let updatedEvents = state.events;
       if (status === 'resolved' && inc) {
         updatedEvents = state.events.map(ev => 
-          inc.eventIds.includes(ev.id) ? { ...ev, status: 'resolved' as const } : ev
+          inc.eventIds.includes(ev.id) ? { ...ev, status: 'resolved' as const, responseStatus: 'resolved' as const } : ev
         );
       }
 
@@ -644,9 +1003,13 @@ export function rootReducer(state: AppState, action: Action): AppState {
 
       return {
         ...state,
-        incidents: updatedIncidents,
+        incidents: synchronizeIncidentStatuses(updatedIncidents, updatedEvents),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
+        selectedIncidentId: status === 'resolved' ? null : state.selectedIncidentId,
+        notifications: status === 'resolved'
+          ? state.notifications.filter(n => !n.relatedIncidentId || n.relatedIncidentId !== incidentId)
+          : state.notifications,
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -671,22 +1034,69 @@ export function rootReducer(state: AppState, action: Action): AppState {
     case 'APPROVE_BREAK_GLASS': {
       const { accessId } = action.payload;
       const acc = state.ehrAccesses.find(a => a.id === accessId);
+      if (!acc || acc.breakGlassDecision === 'approved') return state;
+
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
         timestamp: new Date().toISOString(),
         actor: 'Clinical Privacy & Compliance Officer',
         system: 'EHR Audit Core',
-        action: `Emergency break-glass reviewed & approved: ${acc?.doctorName} -> ${acc?.patientName}`,
+        action: `Emergency break-glass reviewed & approved: ${acc.doctorName} -> ${acc.patientName}`,
         outcome: 'success',
-        details: `Clinical emergency justification verified: ${acc?.accessReason}`,
+        details: `Clinical emergency justification verified: ${acc.accessReason}`,
       };
+      const updatedEvents = state.events.map(ev =>
+        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'approved' as const, metadata: { ...ev.metadata, breakGlassApproved: true, breakGlassDecision: 'approved' } }
+          : ev
+      );
       return {
         ...state,
         ehrAccesses: state.ehrAccesses.map(a => 
-          a.id === accessId ? { ...a, breakGlassApproved: true, risk: 'low' as const } : a
+          a.id === accessId ? { ...a, breakGlassApproved: true, breakGlassDecision: 'approved', risk: 'low' as const } : a
         ),
+        events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
+    }
+
+    case 'DECLINE_BREAK_GLASS': {
+      const { accessId } = action.payload;
+      const acc = state.ehrAccesses.find(a => a.id === accessId);
+      if (!acc || acc.breakGlassDecision === 'declined') return state;
+
+      const newAudit: AuditEvent = {
+        id: `aud-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actor: 'Clinical Privacy & Compliance Officer',
+        system: 'EHR Audit Core',
+        action: `Emergency break-glass reviewed & declined: ${acc.doctorName} -> ${acc.patientName}`,
+        outcome: 'warning',
+        details: `Emergency access was not approved by the synthetic compliance reviewer. Recorded reason: ${acc.accessReason}`,
+      };
+      const updatedEvents = state.events.map(ev =>
+        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'declined' as const, metadata: { ...ev.metadata, breakGlassApproved: false, breakGlassDecision: 'declined' } }
+          : ev
+      );
+      return {
+        ...state,
+        ehrAccesses: state.ehrAccesses.map(a =>
+          a.id === accessId ? { ...a, breakGlassApproved: false, breakGlassDecision: 'declined', risk: 'medium' as const } : a
+        ),
+        events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
+        auditLog: [newAudit, ...state.auditLog],
+      };
+    }
+
+    case 'CREATE_INCIDENT_FROM_EVENT': {
+      return createIncidentFromEvent(state, action.payload.eventId);
     }
 
     case 'SET_GUIDED_DEMO':
