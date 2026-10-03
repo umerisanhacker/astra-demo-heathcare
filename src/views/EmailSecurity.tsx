@@ -16,7 +16,6 @@ import {
   Search,
   ExternalLink
 } from 'lucide-react';
-import type { SimulatedEmail } from '../store/types';
 
 export default function EmailSecurity() {
   const emails = useEmails();
