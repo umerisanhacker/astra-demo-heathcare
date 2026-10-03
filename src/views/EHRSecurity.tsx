@@ -131,8 +131,7 @@ export default function EHRSecurity() {
               </div>
             </div>
 
-            <button
-              <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
                     if (latestAnomaly?.relatedEventId) {
