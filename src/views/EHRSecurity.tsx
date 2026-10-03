@@ -24,7 +24,6 @@ export default function EHRSecurity() {
   const declineBreakGlass = useDeclineBreakGlass();
   const resolveSecurityEvent = useResolveSecurityEvent();
   const createIncidentFromEvent = useCreateIncidentFromEvent();
-  const selectIncident = useSelectIncident();
   const setCurrentView = useSetCurrentView();
 
   const [activeTab, setActiveTab] = useState<'access_logs' | 'velocity' | 'break_glass' | 'patients'>('access_logs');
