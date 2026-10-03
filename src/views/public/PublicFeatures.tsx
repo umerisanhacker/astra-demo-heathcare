@@ -96,7 +96,7 @@ export function PublicFeatures() {
         'Access velocity tripwire: flags queries exceeding 5 charts/30 min',
         'Cross-department relationship anomaly detection (e.g. Cardiology accessing Neurology)',
         'Audited emergency Break-Glass access request and approval workflow',
-        'Protection against insider exfiltration and compromised clinical accounts'
+        'Detection of anomalous bulk access and compromised synthetic clinical accounts'
       ]
     },
     {
@@ -137,7 +137,7 @@ export function PublicFeatures() {
           Engineered for Healthcare Security Operations
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '700px', margin: '0 auto' }}>
-          Every module in CareSentinel is built to protect clinical workflows, prevent ransomware footholds, and safeguard electronic health records.
+          Every module in CareSentinel is built to protect synthetic clinical workflows, surface intrusion signals, and safeguard synthetic electronic health records.
         </p>
       </div>
 
