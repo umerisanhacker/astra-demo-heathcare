@@ -559,7 +559,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         events: newEvents,
         incidents: newIncidents,
         securityPosture: newPosture,
-        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
+        notifications: [newNotif, ...state.notifications],
       };
     }
     
@@ -654,7 +654,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
         auditLog: [newAudit, ...state.auditLog],
-        notifications: [newNotif, ...state.notifications],
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
       };
     }
 
