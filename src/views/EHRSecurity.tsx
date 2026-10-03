@@ -7,7 +7,6 @@ import {
   useDeclineBreakGlass,
   useResolveSecurityEvent,
   useCreateIncidentFromEvent,
-  useSelectIncident, 
   useSetCurrentView 
 } from '../store/store';
 import { 
