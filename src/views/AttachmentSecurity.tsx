@@ -1,3 +1,4 @@
+import { DecisionBadge } from '../components/security/DecisionBadge';
 import { useState } from 'react';
 import { 
   useAttachments, 
