@@ -23,6 +23,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       let updatedUsers = [...state.users];
       let updatedDevices = [...state.devices];
       let updatedNetworkNodes = [...state.networkNodes];
+      let updatedAttachments = [...state.attachments];
 
       switch (simulationType) {
         case 'Phishing':
@@ -408,6 +409,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         incidents: newIncidents,
         securityPosture: newPosture,
         emails: updatedEmails,
+        attachments: updatedAttachments,
         ehrAccesses: updatedEHRAccesses,
         users: updatedUsers,
         devices: updatedDevices,
