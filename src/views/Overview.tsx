@@ -1,5 +1,13 @@
-import { Shield, AlertTriangle, Users, Network } from 'lucide-react';
-import { useStore, useEvents, useIncidents, usePosture } from '../store/store';
+import { 
+  AlertTriangle, 
+  ShieldAlert, 
+  ShieldCheck, 
+  Users, 
+  Activity, 
+  Network, 
+  ArrowRight
+} from 'lucide-react';
+import { useEvents, useIncidents, usePosture, useSetCurrentView } from '../store/store';
 import { selectRecentEvents } from '../store/selectors';
 import MetricCard from '../components/dashboard/MetricCard';
 import ThreatChart from '../components/dashboard/ThreatChart';
@@ -8,68 +16,180 @@ import CriticalIncident from '../components/dashboard/CriticalIncident';
 import RecentEvents from '../components/dashboard/RecentEvents';
 
 export default function Overview() {
-  const { state } = useStore();
   const events = useEvents();
   const incidents = useIncidents();
   const posture = usePosture();
+  const setCurrentView = useSetCurrentView();
 
-  const activeIncidentsCount = incidents.filter(i => i.status === 'active').length;
+  const activeIncidents = incidents.filter(i => i.status === 'active' || i.status === 'investigating');
   const alertCount = events.filter(e => e.status === 'new').length;
   const identityCount = events.filter(e => e.category === 'identity').length;
-  const networkCount = events.filter(e => e.category === 'network').length;
+  const ehrAnomaliesCount = events.filter(e => e.category === 'ehr').length;
+  const networkEventsCount = events.filter(e => e.category === 'network').length;
 
-  const criticalIncident = incidents.find(i => i.severity === 'critical' && i.status === 'active');
-  const recentEvents = selectRecentEvents(events, 5);
+  const criticalIncident = incidents.find(i => i.severity === 'critical' && i.status !== 'resolved');
+  const recentEvents = selectRecentEvents(events, 6);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Active Incidents"
-          value={activeIncidentsCount}
-          trend="+2"
-          trendUp={true}
-          icon={<AlertTriangle className="h-6 w-6 text-[var(--critical)]" />}
-        />
-        <MetricCard
-          title="Active Alerts"
-          value={alertCount}
-          trend="-14%"
-          trendUp={false}
-          icon={<Shield className="h-6 w-6 text-[var(--accent-primary)]" />}
-        />
-        <MetricCard
-          title="Identity Anomalies"
-          value={identityCount}
-          trend="+5"
-          trendUp={true}
-          icon={<Users className="h-6 w-6 text-[var(--warning)]" />}
-        />
-        <MetricCard
-          title="Network Events"
-          value={networkCount}
-          trend="-2%"
-          trendUp={false}
-          icon={<Network className="h-6 w-6 text-[var(--accent-secondary)]" />}
-        />
+    <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            Security Overview
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.2rem' }}>
+            Clinical security posture across the synthetic hospital environment (Northstar Medical Center).
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={() => setCurrentView('Attack Simulator')}
+            className="btn btn-outline"
+            style={{ color: 'var(--critical)', borderColor: 'rgba(239, 68, 68, 0.3)', backgroundColor: 'rgba(239, 68, 68, 0.04)' }}
+          >
+            <AlertTriangle size={15} /> Attack Simulator
+          </button>
+          <button
+            onClick={() => setCurrentView('Incidents')}
+            className="btn btn-primary"
+          >
+            All Incidents ({activeIncidents.length}) <ArrowRight size={15} />
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {criticalIncident && <CriticalIncident incident={criticalIncident} />}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Threat Activity</h2>
-            <div className="h-80">
-              <ThreatChart events={events} />
+      {/* Critical Incident Banner or Baseline Normal Banner */}
+      {criticalIncident ? (
+        <CriticalIncident incident={criticalIncident} />
+      ) : (
+        <div style={{
+          backgroundColor: 'white',
+          border: '1px solid var(--border)',
+          borderRadius: '14px',
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--positive-bg)',
+              color: 'var(--positive)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="badge bg-positive-light">BASELINE NORMAL</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Synthetic Northstar Medical Center
+                </span>
+              </div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.15rem' }}>
+                Zero Active Critical Incidents — Security Posture: {posture.score}/100 ({posture.label})
+              </div>
             </div>
           </div>
+
+          <button
+            onClick={() => setCurrentView('Attack Simulator')}
+            className="btn btn-outline"
+            style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+          >
+            Launch Attack Simulator <ArrowRight size={14} />
+          </button>
         </div>
-        <div className="space-y-6">
+      )}
+
+      {/* 6 Metric Cards */}
+      <div className="grid-metrics">
+        <div onClick={() => setCurrentView('Incidents')} style={{ cursor: 'pointer' }}>
+          <MetricCard
+            title="ACTIVE INCIDENTS"
+            value={activeIncidents.length}
+            trend="+1 active"
+            trendUp={activeIncidents.length > 0}
+            icon={<ShieldAlert className="h-6 w-6 text-[var(--critical)]" />}
+          />
+        </div>
+
+        <div onClick={() => setCurrentView('Overview')} style={{ cursor: 'pointer' }}>
+          <MetricCard
+            title="SECURITY ALERTS"
+            value={alertCount}
+            trend="+6 today"
+            trendUp={true}
+            icon={<AlertTriangle className="h-6 w-6 text-[var(--warning)]" />}
+          />
+        </div>
+
+        <div onClick={() => setCurrentView('Overview')} style={{ cursor: 'pointer' }}>
+          <MetricCard
+            title="RISK POSTURE"
+            value={`${posture.score}/100`}
+            trend={posture.label}
+            trendUp={posture.score < 80}
+            icon={<ShieldCheck className="h-6 w-6 text-[var(--positive)]" />}
+          />
+        </div>
+
+        <div onClick={() => setCurrentView('Identity')} style={{ cursor: 'pointer' }}>
+          <MetricCard
+            title="IDENTITY ANOMALIES"
+            value={identityCount}
+            trend="+2 rogue"
+            trendUp={true}
+            icon={<Users className="h-6 w-6 text-[var(--accent-primary)]" />}
+          />
+        </div>
+
+        <div onClick={() => setCurrentView('EHR Security')} style={{ cursor: 'pointer' }}>
+          <MetricCard
+            title="EHR ANOMALIES"
+            value={ehrAnomaliesCount}
+            trend="Velocity 47/90s"
+            trendUp={true}
+            icon={<Activity className="h-6 w-6 text-[var(--critical)]" />}
+          />
+        </div>
+
+        <div onClick={() => setCurrentView('Network')} style={{ cursor: 'pointer' }}>
+          <MetricCard
+            title="NETWORK EVENTS"
+            value={networkEventsCount}
+            trend="Port scans"
+            trendUp={true}
+            icon={<Network className="h-6 w-6 text-[var(--accent-secondary)]" />}
+          />
+        </div>
+      </div>
+
+      {/* Main Grid: Threat Chart & Security Posture */}
+      <div className="grid-main">
+        <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white' }}>
+          <ThreatChart events={events} />
+        </div>
+
+        <div>
           <SecurityPosture posture={posture} />
-          <RecentEvents events={recentEvents} />
         </div>
+      </div>
+
+      {/* Live Security Activity Stream */}
+      <div>
+        <RecentEvents events={recentEvents} />
       </div>
     </div>
   );
 }
-

@@ -1,13 +1,14 @@
 export type EventType = 
   | 'EMAIL_RECEIVED' | 'PHISHING_DETECTED' | 'SUSPICIOUS_LINK' | 'ATTACHMENT_ANALYZED'
   | 'FAILED_LOGIN' | 'UNUSUAL_LOGIN' | 'UNKNOWN_DEVICE' | 'CREDENTIAL_COMPROMISE'
-  | 'PORT_SCAN' | 'BRUTE_FORCE' | 'SUSPICIOUS_OUTBOUND'
-  | 'EHR_ACCESS' | 'EHR_BULK_ACCESS'
+  | 'PORT_SCAN' | 'BRUTE_FORCE' | 'SUSPICIOUS_OUTBOUND' | 'LATERAL_MOVEMENT'
+  | 'APP_PROBE' | 'API_ABUSE'
+  | 'EHR_ACCESS' | 'EHR_BULK_ACCESS' | 'BREAK_GLASS'
   | 'INCIDENT_CREATED' | 'AUDIT_ACTION' | 'SIMULATION_TRIGGERED';
 
-export type Category = 'email' | 'identity' | 'network' | 'ehr' | 'system' | 'linkguard';
+export type Category = 'email' | 'identity' | 'network' | 'ehr' | 'system' | 'linkguard' | 'application';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
-export type IncidentStatus = 'active' | 'investigating' | 'contained' | 'resolved';
+export type IncidentStatus = 'new' | 'active' | 'investigating' | 'contained' | 'resolved' | 'escalated';
 export type EventStatus = 'new' | 'acknowledged' | 'resolved' | 'false_positive';
 
 export interface SimulatedUser {
@@ -16,6 +17,9 @@ export interface SimulatedUser {
   role: string;
   department: string;
   email: string;
+  normalHours: string;
+  workstation: string;
+  status: 'active' | 'flagged' | 'suspended';
 }
 
 export interface SimulatedDevice {
@@ -24,6 +28,82 @@ export interface SimulatedDevice {
   type: string;
   ip: string;
   known: boolean;
+  status: 'online' | 'isolated' | 'flagged';
+  location: string;
+}
+
+export interface SimulatedEmail {
+  id: string;
+  sender: string;
+  senderName: string;
+  domain: string;
+  recipient: string;
+  recipientName: string;
+  subject: string;
+  preview: string;
+  body: string;
+  timestamp: string;
+  risk: Severity;
+  status: 'inbox' | 'quarantined' | 'analyzed';
+  authIndicators: {
+    syntaxValid: boolean;
+    domainTrusted: boolean;
+    displayNameMismatch: boolean;
+    lookalikeDetected: boolean;
+    syntheticSpf: 'PASS' | 'FAIL' | 'SOFTFAIL';
+    syntheticDkim: 'PASS' | 'FAIL';
+    syntheticDmarc: 'PASS' | 'FAIL';
+  };
+  links: string[];
+  attachments: string[];
+}
+
+export interface SimulatedAttachment {
+  id: string;
+  filename: string;
+  extension: string;
+  detectedType: string;
+  size: string;
+  hash: string;
+  archiveDepth: number;
+  nestedFilesCount: number;
+  compressionRatio: 'LOW' | 'MEDIUM' | 'HIGH';
+  executableContent: boolean;
+  scriptIndicators: boolean;
+  riskScore: number;
+  decision: 'CLEAN' | 'SUSPICIOUS' | 'QUARANTINED';
+  uploadedAt: string;
+  sender: string;
+}
+
+export interface SimulatedPatient {
+  id: string;
+  name: string;
+  mrn: string;
+  age: number;
+  gender: string;
+  department: string;
+  primaryPhysician: string;
+  room: string;
+  condition: string;
+  vip: boolean;
+}
+
+export interface SimulatedEHRAccess {
+  id: string;
+  timestamp: string;
+  doctorId: string;
+  doctorName: string;
+  patientId: string;
+  patientName: string;
+  department: string;
+  accessReason: string;
+  relationship: 'Direct Care' | 'Consulting' | 'Unrelated' | 'Emergency Break-Glass';
+  device: string;
+  isAnomalous: boolean;
+  isBreakGlass: boolean;
+  breakGlassApproved?: boolean;
+  risk: Severity;
 }
 
 export interface SecurityEvent {
@@ -40,7 +120,7 @@ export interface SecurityEvent {
   deviceId?: string;
   system: string;
   status: EventStatus;
-  riskContribution: number; // 0-20 points deducted from base score
+  riskContribution: number; // 0-25 points deducted
   relatedIncidentId?: string;
   metadata: Record<string, string | number | boolean>;
 }
@@ -51,6 +131,13 @@ export interface RiskFactor {
   deduction: number;
   eventId: string;
   category: Category;
+}
+
+export interface IncidentNote {
+  id: string;
+  author: string;
+  timestamp: string;
+  text: string;
 }
 
 export interface CorrelatedIncident {
@@ -66,6 +153,9 @@ export interface CorrelatedIncident {
   createdAt: string;
   updatedAt: string;
   description: string;
+  assignedInvestigator?: string;
+  notes?: IncidentNote[];
+  recommendedActions?: string[];
 }
 
 export interface AuditEvent {
@@ -76,6 +166,7 @@ export interface AuditEvent {
   action: string;
   outcome: 'success' | 'failed' | 'warning';
   relatedEventId?: string;
+  details?: string;
 }
 
 export interface AppNotification {
@@ -87,17 +178,29 @@ export interface AppNotification {
   severity: Severity;
   relatedEventId?: string;
   relatedIncidentId?: string;
+  targetView?: string;
 }
 
 export interface SecurityPosture {
   score: number; // 0-100, derived
-  label: string; // 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Critical'
+  label: string; // 'Protected' | 'Good' | 'Fair' | 'Poor' | 'Critical'
   categoryScores: Record<Category, number>;
   riskFactors: RiskFactor[];
   lastCalculated: string;
 }
 
+export interface NetworkTelemetryNode {
+  id: string;
+  name: string;
+  type: 'internet' | 'firewall' | 'dmz' | 'app_servers' | 'ehr_db' | 'workstation';
+  ip: string;
+  status: 'normal' | 'alert' | 'isolated';
+  trafficRate: string;
+}
+
 export interface AppState {
+  appMode: 'public' | 'console';
+  publicPage: 'home' | 'features' | 'how-it-works' | 'security' | 'faq' | 'privacy' | 'terms' | 'login';
   currentView: string;
   events: SecurityEvent[];
   incidents: CorrelatedIncident[];
@@ -105,9 +208,16 @@ export interface AppState {
   notifications: AppNotification[];
   users: SimulatedUser[];
   devices: SimulatedDevice[];
+  emails: SimulatedEmail[];
+  attachments: SimulatedAttachment[];
+  patients: SimulatedPatient[];
+  ehrAccesses: SimulatedEHRAccess[];
   securityPosture: SecurityPosture;
-  attackChainProgress: number; // 0-14 steps
+  attackChainProgress: number; // 0-11 steps
   isRunningChain: boolean;
   searchQuery: string;
+  selectedIncidentId: string | null;
+  guidedDemoActive: boolean;
+  guidedDemoStep: number;
+  networkNodes: NetworkTelemetryNode[];
 }
-

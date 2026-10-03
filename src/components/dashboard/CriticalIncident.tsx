@@ -1,6 +1,6 @@
 import type { CorrelatedIncident } from '../../store/types';
 import { ShieldAlert, ArrowRight } from 'lucide-react';
-import { useEvents } from '../../store/store';
+import { useEvents, useSelectIncident, useSetCurrentView } from '../../store/store';
 
 interface Props {
   incident: CorrelatedIncident;
@@ -8,35 +8,122 @@ interface Props {
 
 export default function CriticalIncident({ incident }: Props) {
   const events = useEvents();
-  const incidentEvents = events.filter(e => incident.eventIds.includes(e.id)).slice(0, 3); // show up to 3
+  const selectIncident = useSelectIncident();
+  const setCurrentView = useSetCurrentView();
+  
+  const incidentEvents = events.filter(e => incident.eventIds.includes(e.id)).slice(0, 4);
+
+  const handleOpenInvestigation = () => {
+    selectIncident(incident.id);
+    setCurrentView('Incidents');
+  };
 
   return (
-    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 relative overflow-hidden animate-pulse-slow">
-      <div className="absolute top-0 left-0 w-1 h-full bg-[var(--critical)]"></div>
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <ShieldAlert className="h-6 w-6 text-[var(--critical)]" />
-          <h2 className="text-xl font-bold text-[var(--critical)]">Critical Incident: {incident.title}</h2>
-        </div>
-        <span className="text-sm font-medium bg-[var(--critical)] text-white px-3 py-1 rounded-full">
-          Score: {incident.riskScore}
-        </span>
-      </div>
-      
-      <p className="mt-4 text-sm text-[var(--text-primary)]">User Affected: <span className="font-semibold">{incident.affectedUserId}</span></p>
-      
-      <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center text-sm text-[var(--text-secondary)]">
-        {incidentEvents.map((e, idx) => (
-          <div key={e.id} className="flex items-center gap-4">
-            <div className="bg-[var(--bg-tertiary)] p-3 rounded-lg border border-[var(--border-color)]">
-              <span className="font-medium text-[var(--text-primary)] block">{e.title}</span>
-              <span className="text-xs">{new Date(e.timestamp).toLocaleTimeString()}</span>
-            </div>
-            {idx < incidentEvents.length - 1 && <ArrowRight className="h-4 w-4 text-[var(--text-muted)] hidden md:block" />}
+    <div style={{
+      backgroundColor: 'rgba(254, 242, 242, 0.7)',
+      border: '1px solid rgba(239, 68, 68, 0.3)',
+      borderRadius: '14px',
+      padding: '1.5rem',
+      position: 'relative',
+      overflow: 'hidden',
+      boxShadow: 'var(--shadow-sm)',
+    }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: 'var(--critical)' }} />
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            backgroundColor: 'var(--critical)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+          }}>
+            <ShieldAlert size={22} />
           </div>
-        ))}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="badge bg-critical-light" style={{ textTransform: 'uppercase' }}>
+                {incident.severity} PRIORITY
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                {incident.id}
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+              {incident.title}
+            </h2>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+              Calculated Risk
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--critical)', lineHeight: 1 }}>
+              {incident.riskScore} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/ 100</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleOpenInvestigation}
+            className="btn btn-primary"
+            style={{ backgroundColor: 'var(--critical)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+          >
+            Investigate Incident <ArrowRight size={15} />
+          </button>
+        </div>
+      </div>
+
+      <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+        <div>
+          Target Account: <strong style={{ color: 'var(--text-primary)' }}>{incident.affectedUserId || 'Unknown'}</strong>
+        </div>
+        <div>
+          Affected Systems: <strong style={{ color: 'var(--text-primary)' }}>{incident.affectedSystems.join(', ')}</strong>
+        </div>
+        <div>
+          Correlated Signals: <strong style={{ color: 'var(--text-primary)' }}>{incident.eventIds.length} telemetry events</strong>
+        </div>
+      </div>
+
+      {/* Mini Attack Chain Progression */}
+      <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(239, 68, 68, 0.2)' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--critical)', marginBottom: '0.6rem' }}>
+          Correlated Signal Sequence
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'center' }}>
+          {incidentEvents.map((evt, idx) => (
+            <div key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div style={{
+                backgroundColor: 'white',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+              }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>{evt.title}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  {new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {evt.system}
+                </span>
+              </div>
+              {idx < incidentEvents.length - 1 && (
+                <ArrowRight size={14} color="var(--critical)" />
+              )}
+            </div>
+          ))}
+          {incident.eventIds.length > 4 && (
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--critical)' }}>
+              +{incident.eventIds.length - 4} more signals
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-

@@ -1,131 +1,264 @@
-import { Shield, Home, AlertTriangle, Mail, Link, Users, Network, Activity, Sword, ScrollText, Settings } from 'lucide-react';
-import { useCurrentView, useSetCurrentView } from '../../store/store';
-
-const navItems = [
-  { name: 'Overview', icon: Home },
-  { name: 'Incidents', icon: AlertTriangle },
-  { name: 'Email Security', icon: Mail },
-  { name: 'LinkGuard', icon: Link },
-  { name: 'Identity', icon: Users },
-  { name: 'Network', icon: Network },
-  { name: 'EHR Security', icon: Activity },
-];
-
-const opItems = [
-  { name: 'Attack Simulator', icon: Sword },
-  { name: 'Audit Ledger', icon: ScrollText },
-];
+import { 
+  Shield, 
+  Home, 
+  AlertTriangle, 
+  Mail, 
+  Link, 
+  FileCheck,
+  Users, 
+  Network, 
+  Activity, 
+  Server,
+  Play, 
+  ScrollText, 
+  Network as IntegrationIcon,
+  Settings, 
+  HelpCircle,
+  ShieldCheck,
+  Building2
+} from 'lucide-react';
+import { useCurrentView, useSetCurrentView, useIncidents } from '../../store/store';
 
 export function Sidebar() {
   const currentView = useCurrentView();
   const setCurrentView = useSetCurrentView();
+  const incidents = useIncidents();
+
+  const activeIncidents = incidents.filter(i => i.status === 'active' || i.status === 'investigating').length;
+
+  const securityItems = [
+    { name: 'Incidents', icon: AlertTriangle, badge: activeIncidents > 0 ? activeIncidents : undefined, badgeColor: 'var(--critical)' },
+    { name: 'Email Security', icon: Mail },
+    { name: 'LinkGuard', icon: Link },
+    { name: 'Attachments', icon: FileCheck },
+    { name: 'Identity', icon: Users },
+    { name: 'Network', icon: Network },
+    { name: 'Application Security', icon: Server },
+    { name: 'EHR Security', icon: Activity },
+  ];
+
+  const opItems = [
+    { name: 'Attack Simulator', icon: Play, highlight: true },
+    { name: 'Audit Ledger', icon: ScrollText },
+  ];
+
+  const systemItems = [
+    { name: 'Integration', icon: IntegrationIcon },
+    { name: 'Settings', icon: Settings },
+    { name: 'Help', icon: HelpCircle },
+  ];
 
   return (
     <aside className="sidebar">
-      <div style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ backgroundColor: 'var(--accent-primary)', color: 'white', padding: '0.5rem', borderRadius: '8px' }}>
-          <Shield size={24} />
+      {/* Brand Header */}
+      <div style={{
+        padding: '1.25rem 1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={{
+          backgroundColor: 'var(--accent-primary)',
+          color: 'white',
+          width: '38px',
+          height: '38px',
+          borderRadius: '9px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+        }}>
+          <Shield size={22} />
         </div>
         <div>
-          <h2 style={{ fontSize: '1.125rem', margin: 0, color: 'var(--text-primary)' }}>CARESENTINEL</h2>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Clinical Security Intelligence</span>
+          <h2 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            CARESENTINEL
+          </h2>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Clinical Security Intelligence
+          </span>
         </div>
       </div>
       
-      <div style={{ padding: '1.5rem 1rem', overflowY: 'auto', flex: 1 }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingLeft: '0.75rem' }}>Security</div>
-          {navItems.map((item) => {
-            const active = currentView === item.name;
-            return (
-              <button
-                key={item.name}
-                onClick={() => setCurrentView(item.name)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
-                  fontWeight: active ? 600 : 500,
-                  marginBottom: '0.25rem',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <item.icon size={18} style={{ marginRight: '0.75rem' }} />
-                {item.name}
-              </button>
-            );
-          })}
-        </div>
-
+      {/* Navigation List */}
+      <div style={{ padding: '1rem 0.75rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Overview */}
         <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingLeft: '0.75rem' }}>Operations</div>
-          {opItems.map((item) => {
-            const active = currentView === item.name;
-            return (
-              <button
-                key={item.name}
-                onClick={() => setCurrentView(item.name)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
-                  fontWeight: active ? 600 : 500,
-                  marginBottom: '0.25rem',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <item.icon size={18} style={{ marginRight: '0.75rem' }} />
-                {item.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ padding: '1.5rem 1rem', borderTop: '1px solid var(--border)' }}>
-         <button
-            onClick={() => setCurrentView('Settings')}
+          <button
+            onClick={() => setCurrentView('Overview')}
             style={{
               display: 'flex',
               alignItems: 'center',
               width: '100%',
-              padding: '0.75rem',
+              padding: '0.65rem 0.85rem',
               borderRadius: '8px',
-              color: currentView === 'Settings' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              backgroundColor: currentView === 'Settings' ? 'var(--bg-hover)' : 'transparent',
-              fontWeight: currentView === 'Settings' ? 600 : 500,
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              if (currentView !== 'Settings') e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-            }}
-            onMouseLeave={(e) => {
-              if (currentView !== 'Settings') e.currentTarget.style.backgroundColor = 'transparent';
+              color: currentView === 'Overview' ? 'var(--accent-primary)' : 'var(--text-primary)',
+              backgroundColor: currentView === 'Overview' ? 'var(--bg-hover)' : 'transparent',
+              fontWeight: currentView === 'Overview' ? 700 : 500,
+              fontSize: '0.875rem',
+              transition: 'all 0.15s ease',
             }}
           >
-            <Settings size={18} style={{ marginRight: '0.75rem' }} />
-            Settings
+            <Home size={18} style={{ marginRight: '0.75rem', color: currentView === 'Overview' ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
+            Overview
           </button>
+        </div>
+
+        {/* Security Section */}
+        <div>
+          <div style={{
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: '0.4rem',
+            paddingLeft: '0.85rem',
+          }}>
+            Security
+          </div>
+          {securityItems.map((item) => {
+            const active = currentView === item.name;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.name}
+                onClick={() => setCurrentView(item.name)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: '8px',
+                  color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
+                  fontWeight: active ? 700 : 500,
+                  fontSize: '0.85rem',
+                  marginBottom: '0.15rem',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Icon size={17} style={{ marginRight: '0.75rem', color: active ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
+                  {item.name}
+                </div>
+                {item.badge !== undefined && (
+                  <span style={{
+                    backgroundColor: item.badgeColor || 'var(--accent-primary)',
+                    color: 'white',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '0.1rem 0.45rem',
+                    borderRadius: '9999px',
+                  }}>
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Operations Section */}
+        <div>
+          <div style={{
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: '0.4rem',
+            paddingLeft: '0.85rem',
+          }}>
+            Operations
+          </div>
+          {opItems.map((item) => {
+            const active = currentView === item.name;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.name}
+                onClick={() => setCurrentView(item.name)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: '8px',
+                  color: active ? 'var(--accent-primary)' : item.highlight ? 'var(--critical)' : 'var(--text-secondary)',
+                  backgroundColor: active ? 'var(--bg-hover)' : item.highlight ? 'rgba(239, 68, 68, 0.05)' : 'transparent',
+                  fontWeight: active || item.highlight ? 700 : 500,
+                  fontSize: '0.85rem',
+                  marginBottom: '0.15rem',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon size={17} style={{ marginRight: '0.75rem', color: active ? 'var(--accent-primary)' : item.highlight ? 'var(--critical)' : 'var(--text-secondary)' }} />
+                {item.name}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* System Section */}
+        <div>
+          <div style={{
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: '0.4rem',
+            paddingLeft: '0.85rem',
+          }}>
+            System
+          </div>
+          {systemItems.map((item) => {
+            const active = currentView === item.name;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.name}
+                onClick={() => setCurrentView(item.name)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: '8px',
+                  color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
+                  fontWeight: active ? 700 : 500,
+                  fontSize: '0.85rem',
+                  marginBottom: '0.15rem',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon size={17} style={{ marginRight: '0.75rem', color: active ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
+                {item.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom Hospital & SOC Badge */}
+      <div style={{
+        padding: '1rem',
+        borderTop: '1px solid var(--border)',
+        backgroundColor: 'var(--bg-main)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+          <Building2 size={16} color="var(--accent-primary)" />
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Northstar Medical Center
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: 'var(--positive)' }}>
+          <ShieldCheck size={13} /> Synthetic Hospital Environment
+        </div>
       </div>
     </aside>
   );

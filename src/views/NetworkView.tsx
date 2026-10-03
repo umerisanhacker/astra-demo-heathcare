@@ -1,71 +1,247 @@
-import { useEvents } from '../store/store';
-import { selectEventsByCategory } from '../store/selectors';
-import { Network, Server, Shield, Activity, Database } from 'lucide-react';
+import { useState } from 'react';
+import { 
+  useEvents, 
+  useStore 
+} from '../store/store';
+import { 
+  Network, 
+  Server, 
+  Shield, 
+  Database, 
+  ShieldAlert, 
+  CheckCircle2
+} from 'lucide-react';
+import type { NetworkTelemetryNode } from '../store/types';
 
 export default function NetworkView() {
   const events = useEvents();
-  const networkEvents = selectEventsByCategory(events, 'network');
+  const { state } = useStore();
+
+  const [selectedNode, setSelectedNode] = useState<NetworkTelemetryNode>(state.networkNodes[2] || state.networkNodes[0]);
+  const [isolationNotice, setIsolationNotice] = useState<string | null>(null);
+
+  const networkEvents = events.filter(e => e.category === 'network');
+
+  const handleIsolateNode = (node: NetworkTelemetryNode) => {
+    setIsolationNotice(`Node ${node.name} (${node.ip}) isolated into synthetic Quarantine VLAN.`);
+    setTimeout(() => setIsolationNotice(null), 3500);
+  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">Network Security</h1>
-      
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6 h-80 relative overflow-hidden flex items-center justify-center">
-        {/* Simple Network Diagram visualization using SVG */}
-        <svg className="absolute inset-0 w-full h-full">
-          <line x1="10%" y1="50%" x2="30%" y2="50%" stroke="var(--border-color)" strokeWidth="2" strokeDasharray="4" />
-          <line x1="30%" y1="50%" x2="60%" y2="50%" stroke="var(--border-color)" strokeWidth="2" />
-          <line x1="60%" y1="50%" x2="90%" y2="50%" stroke="var(--border-color)" strokeWidth="2" />
-        </svg>
-        
-        <div className="relative w-full h-full flex items-center justify-between px-[10%]">
-          <div className="flex flex-col items-center gap-2 z-10">
-            <div className="p-4 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-full animate-pulse-slow">
-              <Network className="h-8 w-8 text-[var(--text-secondary)]" />
+    <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Header */}
+      <div>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          Clinical Network Intrusion Detection (NIDS)
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.2rem' }}>
+          Synthetic telemetry monitoring clinical firewalls, DMZ reverse proxies, and healthcare VLAN traffic.
+        </p>
+      </div>
+
+      {isolationNotice && (
+        <div style={{
+          padding: '0.75rem 1.25rem',
+          backgroundColor: 'var(--positive-bg)',
+          border: '1px solid var(--positive)',
+          color: 'var(--positive)',
+          borderRadius: '8px',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <CheckCircle2 size={16} /> {isolationNotice}
+        </div>
+      )}
+
+      {/* Interactive Network Topology Diagram */}
+      <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Hospital Clinical Network Topology
+            </h2>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Click any node to view real-time synthetic traffic telemetry and isolation controls
             </div>
-            <span className="text-sm font-medium text-[var(--text-primary)]">Internet</span>
           </div>
-          <div className="flex flex-col items-center gap-2 z-10">
-            <div className={`p-4 rounded-full border ${networkEvents.length > 0 ? 'bg-red-500/20 border-red-500 animate-pulse' : 'bg-[var(--bg-tertiary)] border-[var(--border-color)]'}`}>
-              <Shield className={`h-8 w-8 ${networkEvents.length > 0 ? 'text-red-500' : 'text-[var(--text-secondary)]'}`} />
-            </div>
-            <span className="text-sm font-medium text-[var(--text-primary)]">Firewall</span>
-          </div>
-          <div className="flex flex-col items-center gap-2 z-10">
-            <div className="p-4 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-full">
-              <Server className="h-8 w-8 text-[var(--text-secondary)]" />
-            </div>
-            <span className="text-sm font-medium text-[var(--text-primary)]">App Servers</span>
-          </div>
-          <div className="flex flex-col items-center gap-2 z-10">
-            <div className="p-4 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-full">
-              <Database className="h-8 w-8 text-[var(--text-secondary)]" />
-            </div>
-            <span className="text-sm font-medium text-[var(--text-primary)]">EHR Database</span>
-          </div>
+          <span className="badge bg-positive-light">NIDS Telemetry Active</span>
+        </div>
+
+        {/* SVG Flow diagram */}
+        <div style={{
+          position: 'relative',
+          height: '240px',
+          backgroundColor: 'var(--bg-main)',
+          borderRadius: '12px',
+          border: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 2rem',
+          overflow: 'hidden',
+        }}>
+          {/* Subtle connection line */}
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+            <line x1="10%" y1="50%" x2="90%" y2="50%" stroke="var(--border)" strokeWidth="2" strokeDasharray="6 4" />
+          </svg>
+
+          {state.networkNodes.map((node) => {
+            const isSelected = selectedNode.id === node.id;
+            const hasAlert = node.status === 'alert';
+            return (
+              <button
+                key={node.id}
+                onClick={() => setSelectedNode(node)}
+                style={{
+                  position: 'relative',
+                  zIndex: 10,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '14px',
+                  backgroundColor: hasAlert ? 'var(--critical-bg)' : isSelected ? 'var(--accent-light)' : 'white',
+                  border: isSelected ? '2px solid var(--accent-primary)' : hasAlert ? '2px solid var(--critical)' : '1px solid var(--border)',
+                  color: hasAlert ? 'var(--critical)' : isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'transform 0.15s ease, border-color 0.15s ease',
+                }}>
+                  {node.type === 'internet' ? <Network size={24} /> :
+                   node.type === 'firewall' ? <Shield size={24} /> :
+                   node.type === 'ehr_db' ? <Database size={24} /> :
+                   <Server size={24} />}
+                </div>
+
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {node.name.split(' ')[0]}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    {node.ip}
+                  </div>
+                </div>
+
+                {hasAlert && (
+                  <span className="badge bg-critical-light" style={{ position: 'absolute', top: '-8px', right: '-8px', fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
+                    ALERT
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]">
-          Network Anomalies
-        </div>
-        <div className="divide-y divide-[var(--border-color)]">
-          {networkEvents.length === 0 ? (
-            <div className="p-4 text-[var(--text-secondary)]">No network anomalies detected.</div>
-          ) : networkEvents.map(e => (
-            <div key={e.id} className="p-4 flex items-start gap-4 hover:bg-[var(--bg-tertiary)] transition-colors">
-              <Activity className="h-5 w-5 text-[var(--warning)] mt-1" />
-              <div>
-                <p className="font-medium text-[var(--text-primary)]">{e.title}</p>
-                <p className="text-sm text-[var(--text-secondary)]">{e.description}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">{new Date(e.timestamp).toLocaleString()} • System: {e.system}</p>
+      {/* 2-Column: Selected Node Details (Left) + Intrusion Telemetry Alerts (Right) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'flex-start' }}>
+        {/* Selected Node Inspector */}
+        <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+            <div>
+              <span className={`badge ${selectedNode.status === 'alert' ? 'bg-critical-light' : 'bg-positive-light'}`} style={{ marginBottom: '0.35rem' }}>
+                STATUS: {selectedNode.status.toUpperCase()}
+              </span>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {selectedNode.name}
+              </h3>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                IP Address: <strong>{selectedNode.ip}</strong> • Interface: eth0
               </div>
             </div>
-          ))}
+
+            <button
+              onClick={() => handleIsolateNode(selectedNode)}
+              className="btn btn-outline"
+              style={{ color: 'var(--critical)', borderColor: 'rgba(239, 68, 68, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
+            >
+              <ShieldAlert size={14} /> Isolate Node
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Throughput Rate</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+                {selectedNode.trafficRate}
+              </div>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ACL Security Rule</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.3rem' }}>
+                Strict Medical VLAN
+              </div>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>IPS Sensor State</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--positive)', marginTop: '0.3rem' }}>
+                Active Inspection
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <strong>Inspection Summary:</strong> Node telemetry is monitored for non-standard port scans, unauthorized lateral SSH attempts, and rapid API querying characteristic of clinical record exfiltration.
+          </div>
+        </div>
+
+        {/* NIDS Intrusion Alerts List */}
+        <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              NIDS Signatures & Reconnaissance ({networkEvents.length})
+            </h3>
+            <span className="badge bg-warning-light">Port Scan Telemetry</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {networkEvents.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No active network intrusion signatures.
+              </div>
+            ) : (
+              networkEvents.map(evt => (
+                <div key={evt.id} style={{
+                  padding: '1rem',
+                  backgroundColor: 'var(--bg-main)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {evt.title}
+                    </span>
+                    <span className="badge bg-critical-light">
+                      {evt.severity.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '0.5rem' }}>
+                    {evt.description}
+                  </p>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    <span>Source: <strong>{evt.metadata.sourceIP || evt.actor || '10.0.0.45'}</strong></span>
+                    <span>Scanned Ports: <strong>{String(evt.metadata.scannedPorts || '22, 80, 443, 8080, 8443')}</strong></span>
+                    <span>Rate: <strong>{String(evt.metadata.rate || '450 pkts/sec')}</strong></span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

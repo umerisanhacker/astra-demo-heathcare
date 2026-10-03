@@ -1,70 +1,358 @@
-import { useEvents } from '../store/store';
-import { selectEventsByCategory } from '../store/selectors';
-import { Database, Key } from 'lucide-react';
+import { useState } from 'react';
+import { 
+  useEHRAccesses, 
+  usePatients, 
+  useApproveBreakGlass, 
+  useSelectIncident, 
+  useSetCurrentView 
+} from '../store/store';
+import { 
+  Key, 
+  CheckCircle2, 
+  ArrowRight
+} from 'lucide-react';
 
 export default function EHRSecurity() {
-  const events = useEvents();
-  const ehrEvents = selectEventsByCategory(events, 'ehr');
+  const ehrAccesses = useEHRAccesses();
+  const patients = usePatients();
+  const approveBreakGlass = useApproveBreakGlass();
+  const selectIncident = useSelectIncident();
+  const setCurrentView = useSetCurrentView();
+
+  const [activeTab, setActiveTab] = useState<'access_logs' | 'velocity' | 'break_glass' | 'patients'>('access_logs');
+  const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
+
+  const breakGlassSessions = ehrAccesses.filter(a => a.isBreakGlass);
+
+  const handleApproveBreakGlass = (accessId: string) => {
+    approveBreakGlass(accessId);
+    setApprovalFeedback(`Break-glass access for session ${accessId} officially approved and committed to compliance audit ledger.`);
+    setTimeout(() => setApprovalFeedback(null), 3500);
+  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6">EHR Security</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)] flex justify-between items-center">
-            <span>Suspicious Access Patterns</span>
-            <Database className="h-5 w-5 text-[var(--accent-primary)]" />
+    <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            EHR Security & Clinical Sentry
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.2rem' }}>
+            Protects electronic health records against bulk scraping, credential misuse, and undocumented clinical queries.
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div style={{
+          display: 'flex',
+          backgroundColor: 'white',
+          padding: '0.25rem',
+          borderRadius: '8px',
+          border: '1px solid var(--border)',
+        }}>
+          {[
+            { id: 'access_logs', label: 'Access Logs' },
+            { id: 'velocity', label: 'Bulk Access Velocity' },
+            { id: 'break_glass', label: `Break-Glass (${breakGlassSessions.length})` },
+            { id: 'patients', label: 'Synthetic Patients' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.8rem',
+                fontWeight: activeTab === tab.id ? 700 : 500,
+                color: activeTab === tab.id ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                backgroundColor: activeTab === tab.id ? 'var(--bg-hover)' : 'transparent',
+                borderRadius: '6px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {approvalFeedback && (
+        <div style={{
+          padding: '0.75rem 1.25rem',
+          backgroundColor: 'var(--positive-bg)',
+          border: '1px solid var(--positive)',
+          color: 'var(--positive)',
+          borderRadius: '8px',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <CheckCircle2 size={16} /> {approvalFeedback}
+        </div>
+      )}
+
+      {/* SECTION 25: BULK ACCESS DETECTION VELOCITY GAUGE (Prominently featured) */}
+      <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white', borderLeft: '4px solid var(--critical)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+          <div>
+            <span className="badge bg-critical-light" style={{ marginBottom: '0.35rem' }}>
+              ACCESS VELOCITY ANOMALY DETECTED
+            </span>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--critical)' }}>
+              Bulk Patient Chart Exfiltration Velocity
+            </h2>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+              Clinical velocity tripwire breached by account: <strong>dr.sarah</strong> (Hospital Workstation 04 / Unknown Device 192.168.1.100)
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+
+          <button
+            onClick={() => {
+              selectIncident('INC-001');
+              setCurrentView('Incidents');
+            }}
+            className="btn btn-primary"
+            style={{ backgroundColor: 'var(--critical)', fontSize: '0.85rem' }}
+          >
+            Investigate Incident INC-001 <ArrowRight size={15} />
+          </button>
+        </div>
+
+        {/* Velocity Gauge Comparison */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1.5rem',
+          backgroundColor: 'var(--bg-main)',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          border: '1px solid var(--border)',
+          marginBottom: '1.25rem',
+        }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Normal Attending Baseline
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--positive)', marginTop: '0.2rem' }}>
+              5 records <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ 30 minutes</span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
+              Routine clinical chart review pacing for scheduled morning ward rounds.
+            </div>
+          </div>
+
+          <div style={{ borderLeft: '2px solid var(--border)', paddingLeft: '1.5rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--critical)', textTransform: 'uppercase' }}>
+              Observed Exfiltration Rate (Anomalous)
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--critical)', marginTop: '0.2rem' }}>
+              47 records <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ 90 seconds</span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--critical)', fontWeight: 600, marginTop: '0.3rem' }}>
+              9.4x above maximum permissible clinical query threshold.
+            </div>
+          </div>
+        </div>
+
+        {/* Explainable Reasons */}
+        <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+            Velocity Anomaly Attribution Factors:
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ color: 'var(--critical)' }}>⚠</span> Abnormally high access rate (47 charts / 90s)
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ color: 'var(--critical)' }}>⚠</span> Multiple unrelated patient MRNs accessed
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ color: 'var(--critical)' }}>⚠</span> Unusual off-hours window (03:17)
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ color: 'var(--critical)' }}>⚠</span> Originated from unmanaged rogue device
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TAB CONTENT */}
+      {activeTab === 'access_logs' && (
+        <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
+            Clinical Access Telemetry Log
+          </h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
               <thead>
-                <tr className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)] text-sm text-[var(--text-secondary)]">
-                  <th className="p-4 font-medium">Timestamp</th>
-                  <th className="p-4 font-medium">Actor</th>
-                  <th className="p-4 font-medium">Event Type</th>
-                  <th className="p-4 font-medium">Details</th>
+                <tr style={{ backgroundColor: 'var(--bg-main)', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>Timestamp</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Doctor</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Patient</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Department</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Relationship</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Device</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Access Reason</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Risk Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-color)]">
-                {ehrEvents.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-4 text-center text-[var(--text-secondary)]">No EHR anomalies detected.</td>
-                  </tr>
-                ) : ehrEvents.map(e => (
-                  <tr key={e.id} className="hover:bg-[var(--bg-tertiary)] transition-colors">
-                    <td className="p-4 text-sm text-[var(--text-secondary)] whitespace-nowrap">{new Date(e.timestamp).toLocaleTimeString()}</td>
-                    <td className="p-4 text-sm text-[var(--text-primary)] font-medium">{e.userId || 'Unknown'}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${e.severity === 'critical' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
-                        {e.title}
+              <tbody>
+                {ehrAccesses.map(acc => (
+                  <tr key={acc.id} style={{ borderBottom: '1px solid var(--border)', backgroundColor: acc.isAnomalous && !acc.isBreakGlass ? 'rgba(254, 242, 242, 0.4)' : 'transparent' }}>
+                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>
+                      {new Date(acc.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {acc.doctorName}
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-primary)' }}>
+                      {acc.patientName}
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-secondary)' }}>
+                      {acc.department}
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem' }}>
+                      <span className={`badge ${acc.relationship === 'Unrelated' ? 'bg-critical-light' : acc.relationship === 'Emergency Break-Glass' ? 'bg-warning-light' : 'bg-positive-light'}`}>
+                        {acc.relationship}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-[var(--text-secondary)]">{e.description}</td>
+                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      {acc.device}
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-secondary)' }}>
+                      {acc.accessReason}
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem' }}>
+                      <span className={`badge ${acc.risk === 'critical' ? 'bg-critical-light' : acc.risk === 'medium' ? 'bg-warning-light' : 'bg-positive-light'}`}>
+                        {acc.risk.toUpperCase()}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
 
-        <div className="space-y-6">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Key className="h-6 w-6 text-[var(--warning)]" />
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Break-Glass Access</h2>
+      {/* SECTION 26: BREAK-GLASS ACCESS WORKFLOW */}
+      {activeTab === 'break_glass' && (
+        <div className="card" style={{ padding: '2rem', backgroundColor: 'white' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ backgroundColor: 'var(--warning-bg)', padding: '0.6rem', borderRadius: '8px', color: 'var(--warning)' }}>
+              <Key size={22} />
             </div>
-            <p className="text-sm text-[var(--text-secondary)] mb-4">
-              Monitor emergency "break-glass" access to patient records which bypasses normal access controls.
-            </p>
-            <div className="bg-[var(--bg-tertiary)] p-4 rounded-lg flex items-center justify-between border border-[var(--border-color)]">
-              <span className="text-sm font-medium text-[var(--text-primary)]">Active Break-Glass Sessions</span>
-              <span className="text-xl font-bold text-[var(--warning)]">0</span>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Emergency Break-Glass Protocol Verification
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                Emergency medical exceptions bypass standard access boundaries. CareSentinel documents clinical context without false-positive lockouts.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {breakGlassSessions.map(session => (
+              <div key={session.id} style={{
+                backgroundColor: 'var(--bg-main)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <span className="badge bg-warning-light" style={{ marginBottom: '0.35rem' }}>
+                      {session.breakGlassApproved ? 'BREAK-GLASS REVIEWED & APPROVED' : 'BREAK-GLASS ACTIVE — PENDING COMPLIANCE REVIEW'}
+                    </span>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Emergency Access: {session.doctorName} &rarr; {session.patientName}
+                    </h4>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      Session ID: {session.id} • Terminal: {session.device} • Timestamp: {new Date(session.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+
+                  {!session.breakGlassApproved && (
+                    <button
+                      onClick={() => handleApproveBreakGlass(session.id)}
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', backgroundColor: 'var(--positive)' }}
+                    >
+                      <CheckCircle2 size={15} /> Approve Clinical Justification
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ padding: '0.85rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                  <strong>Documented Emergency Reason:</strong> "{session.accessReason}"
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  <strong>CareSentinel Policy Evaluation:</strong> Unusual cross-department access detected, but emergency trauma context is charted. The system records the access in the immutable audit ledger while allowing uninterrupted medical care.
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SYNTHETIC PATIENT RECORDS */}
+      {activeTab === 'patients' && (
+        <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-primary)' }}>
+            Northstar Medical Center Synthetic Patient Roster ({patients.length})
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            {patients.map(p => (
+              <div key={p.id} style={{
+                padding: '1.25rem',
+                backgroundColor: 'var(--bg-main)',
+                borderRadius: '10px',
+                border: '1px solid var(--border)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{p.mrn}</span>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>{p.name}</h4>
+                  </div>
+                  {p.vip && <span className="badge bg-critical-light">VIP RECORD</span>}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div>Department: <strong>{p.department}</strong> ({p.room})</div>
+                  <div>Attending Physician: <strong>{p.primaryPhysician}</strong></div>
+                  <div>Condition: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{p.condition}</span></div>
+                  <div>Demographics: {p.age} y/o {p.gender}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'velocity' && (
+        <div className="card" style={{ padding: '2rem', backgroundColor: 'white' }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            Clinical Access Velocity Telemetry
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            Query velocity tripwires continuously measure record requests per rolling 90-second and 30-minute intervals.
+          </p>
+
+          <div style={{ height: '160px', display: 'flex', alignItems: 'flex-end', gap: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+              <div style={{ width: '40px', height: '20%', backgroundColor: 'var(--positive)', borderRadius: '4px 4px 0 0' }}></div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.5rem' }}>Baseline (5/30m)</span>
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+              <div style={{ width: '40px', height: '94%', backgroundColor: 'var(--critical)', borderRadius: '4px 4px 0 0' }}></div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--critical)', marginTop: '0.5rem' }}>Tripwire (47/90s)</span>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-

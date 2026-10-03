@@ -1,85 +1,424 @@
-import { useState } from 'react';
-import { useEvents } from '../store/store';
-import { selectEventsByCategory } from '../store/selectors';
-import { Link, Shield, AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useStore, useEvents, useSetCurrentView } from '../store/store';
+import { 
+  Link as LinkIcon, 
+  ShieldAlert, 
+  AlertTriangle, 
+  CheckCircle2, 
+  ArrowRight,
+  Search
+} from 'lucide-react';
+import type { AuditEvent } from '../store/types';
 
 export default function LinkGuard() {
+  const { dispatch } = useStore();
   const events = useEvents();
-  const linkEvents = selectEventsByCategory(events, 'linkguard');
-  const [url, setUrl] = useState('');
-  const [analysis, setAnalysis] = useState<'idle' | 'analyzing' | 'safe' | 'malicious'>('idle');
+  const setCurrentView = useSetCurrentView();
+
+  const linkEvents = events.filter(e => e.category === 'linkguard');
+
+  const [inputUrl, setInputUrl] = useState('https://secure-hospital-login.example/account');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<{
+    url: string;
+    domain: string;
+    protocol: string;
+    port: string;
+    subdomain: string;
+    encoding: string;
+    redirectIndicators: string;
+    reputation: string;
+    riskScore: number;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    reasons: string[];
+    recommendedAction: 'BLOCK' | 'ALLOW' | 'INVESTIGATE';
+  } | null>(null);
+
+  const [simulatedAction, setSimulatedAction] = useState<string | null>(null);
+
+  const runAnalysis = (urlToAnalyze: string) => {
+    if (!urlToAnalyze.trim()) return;
+    setAnalyzing(true);
+
+    const urlLower = urlToAnalyze.toLowerCase();
+    let riskScore = 20;
+    let reasons: string[] = [];
+    let rec: 'BLOCK' | 'ALLOW' | 'INVESTIGATE' = 'ALLOW';
+
+    if (urlLower.includes('login') || urlLower.includes('account') || urlLower.includes('verify') || urlLower.includes('secure')) {
+      riskScore += 35;
+      reasons.push('Credential collection pattern detected in URI path');
+    }
+    if (urlLower.includes('hospital-login') || urlLower.includes('hospital-support') || urlLower.includes('.example') || urlLower.includes('.net') || urlLower.includes('northstar-billing')) {
+      riskScore += 32;
+      reasons.push('Look-alike domain pattern masquerading as hospital portal');
+    }
+    if (urlLower.startsWith('http://')) {
+      riskScore += 15;
+      reasons.push('Unencrypted HTTP protocol used for sensitive clinical portal');
+    }
+    if (reasons.length === 0) {
+      reasons.push('Valid SSL certificate and trusted internal medical domain structure');
+    }
+
+    riskScore = Math.min(100, Math.max(10, riskScore));
+    const riskLevel = riskScore >= 80 ? 'CRITICAL' : riskScore >= 60 ? 'HIGH' : riskScore >= 40 ? 'MEDIUM' : 'LOW';
+    rec = riskScore >= 65 ? 'BLOCK' : riskScore >= 45 ? 'INVESTIGATE' : 'ALLOW';
+
+    // Parse parts
+    let domain = 'unknown';
+    let protocol = 'https:';
+    let port = '443 (Default)';
+    let subdomain = 'None';
+    try {
+      const parsed = new URL(urlToAnalyze);
+      domain = parsed.hostname;
+      protocol = parsed.protocol;
+      port = parsed.port || (protocol === 'https:' ? '443 (Default)' : '80 (Default)');
+      const parts = parsed.hostname.split('.');
+      if (parts.length > 2) {
+        subdomain = parts.slice(0, parts.length - 2).join('.');
+      }
+    } catch {
+      domain = urlToAnalyze.split('/')[2] || urlToAnalyze;
+    }
+
+    setTimeout(() => {
+      setAnalysisResult({
+        url: urlToAnalyze,
+        domain,
+        protocol,
+        port,
+        subdomain,
+        encoding: 'UTF-8 / Standard ASCII',
+        redirectIndicators: riskScore >= 65 ? '1 Hidden Proxy Hop Detected' : 'Direct Target (0 Redirects)',
+        reputation: riskScore >= 65 ? 'Flagged Malicious (Reputation: 12/100)' : 'Trusted Domain (Reputation: 96/100)',
+        riskScore,
+        riskLevel,
+        reasons,
+        recommendedAction: rec,
+      });
+      setAnalyzing(false);
+    }, 400);
+  };
+
+  // Run initial analysis on mount or when an intercepted event arrives
+  useEffect(() => {
+    if (!analysisResult) {
+      const latestUrl = (linkEvents[0]?.metadata?.url as string) || inputUrl;
+      setInputUrl(latestUrl);
+      runAnalysis(latestUrl);
+    }
+  }, [linkEvents.length]);
 
   const handleAnalyze = () => {
-    if (!url) return;
-    setAnalysis('analyzing');
-    setTimeout(() => {
-      const isMalicious = url.includes('login') || url.includes('secure') || url.includes('hospital');
-      setAnalysis(isMalicious ? 'malicious' : 'safe');
-    }, 1000);
+    runAnalysis(inputUrl);
+  };
+
+  const handleInspectEvent = (eventUrl: string) => {
+    setInputUrl(eventUrl);
+    runAnalysis(eventUrl);
+  };
+
+  const executeAction = (actionName: string) => {
+    setSimulatedAction(actionName);
+    
+    const newAudit: AuditEvent = {
+      id: `aud-lg-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      actor: 'Security Analyst (LinkGuard Console)',
+      system: 'LinkGuard Safe-Proxy',
+      action: `Simulated Link Policy: ${actionName} for "${inputUrl}"`,
+      outcome: actionName === 'Block Link' ? 'success' : 'warning',
+      details: `Operator enacted recommended policy ${actionName}. Domain added to DNS sinkhole filter.`,
+    };
+
+    dispatch({ type: 'ADD_AUDIT', payload: newAudit });
+    setTimeout(() => setSimulatedAction(null), 3000);
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">LinkGuard Protection</h1>
-      
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-4 text-[var(--text-primary)]">Manual URL Analysis</h2>
-        <div className="flex gap-4">
-          <div className="relative flex-1">
-            <Link className="absolute left-3 top-3 h-5 w-5 text-[var(--text-muted)]" />
-            <input 
-              type="text" 
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter URL to analyze (e.g., http://secure-update-portal-hospital.com)"
-              className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg pl-10 pr-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+    <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Header */}
+      <div>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          LinkGuard Protection
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.2rem' }}>
+          Deep lexical, domain reputation, and credential-harvesting analysis for healthcare hyperlinks.
+        </p>
+      </div>
+
+      {simulatedAction && (
+        <div style={{
+          padding: '0.75rem 1.25rem',
+          backgroundColor: 'var(--positive-bg)',
+          border: '1px solid var(--positive)',
+          color: 'var(--positive)',
+          borderRadius: '8px',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <CheckCircle2 size={16} /> Safe Response Enacted: {simulatedAction} committed to LinkGuard proxy rules & Audit Ledger!
+        </div>
+      )}
+
+      {/* Intercepted Links Table (if any link events exist in central state) */}
+      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShieldAlert size={18} color="var(--critical)" />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Live Intercepted Healthcare Hyperlinks ({linkEvents.length})
+            </h2>
+          </div>
+          <span className="badge bg-positive-light">LinkGuard Safe-Proxy Active</span>
+        </div>
+
+        {linkEvents.length === 0 ? (
+          <div style={{
+            padding: '2rem',
+            textAlign: 'center',
+            backgroundColor: 'var(--bg-main)',
+            borderRadius: '8px',
+            color: 'var(--text-secondary)',
+            fontSize: '0.875rem',
+          }}>
+            No suspicious links intercepted yet. Trigger "SIMULATE MALICIOUS LINK" in Attack Simulator to inject real telemetry.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Timestamp</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Target User</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Intercepted URL</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Risk Score</th>
+                  <th style={{ padding: '0.65rem 0.75rem' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linkEvents.map(evt => {
+                  const url = (evt.metadata?.url as string) || 'https://secure-hospital-login.example/account';
+                  return (
+                    <tr key={evt.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-muted)' }}>
+                        {evt.timestamp.split('T')[1]?.substring(0, 8) || '09:43:00'}
+                      </td>
+                      <td style={{ padding: '0.65rem 0.75rem', fontWeight: 600 }}>
+                        {evt.actor || 'Dr. Sarah Wilson'}
+                      </td>
+                      <td style={{ padding: '0.65rem 0.75rem', color: 'var(--critical)', fontFamily: 'monospace' }}>
+                        {url}
+                      </td>
+                      <td style={{ padding: '0.65rem 0.75rem' }}>
+                        <span className="badge bg-critical-light">88/100 (CRITICAL)</span>
+                      </td>
+                      <td style={{ padding: '0.65rem 0.75rem' }}>
+                        <button
+                          onClick={() => handleInspectEvent(url)}
+                          className="btn btn-outline"
+                          style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem' }}
+                        >
+                          <Search size={12} /> Inspect URL
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Manual URL Input Card */}
+      <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
+        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+          Manual URL Security Analysis
+        </h2>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+          Paste any clinical hyperlink to execute structural inspection, domain entropy evaluation, and simulated containment:
+        </p>
+
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+            <LinkIcon size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+            <input
+              type="text"
+              value={inputUrl}
+              onChange={(e) => setInputUrl(e.target.value)}
+              placeholder="e.g. https://secure-hospital-login.example/account"
+              style={{
+                width: '100%',
+                padding: '0.65rem 0.75rem 0.65rem 2.25rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                fontSize: '0.9rem',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
             />
           </div>
-          <button 
+
+          <button
             onClick={handleAnalyze}
-            disabled={!url || analysis === 'analyzing'}
-            className="px-6 py-2.5 bg-[var(--accent-primary)] hover:bg-opacity-90 text-white font-medium rounded-lg disabled:opacity-50 transition-colors"
+            disabled={analyzing || !inputUrl.trim()}
+            className="btn btn-primary"
+            style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem' }}
           >
-            {analysis === 'analyzing' ? 'Analyzing...' : 'Analyze URL'}
+            {analyzing ? 'ANALYZING...' : 'Analyze URL'}
           </button>
         </div>
 
-        {analysis === 'safe' && (
-          <div className="mt-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3 text-green-500">
-            <CheckCircle2 className="h-5 w-5" />
-            <span>This URL appears to be safe.</span>
-          </div>
-        )}
-        {analysis === 'malicious' && (
-          <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-3 text-red-500">
-            <AlertOctagon className="h-5 w-5" />
-            <span>High Risk: This URL exhibits phishing characteristics.</span>
-          </div>
-        )}
+        {/* Quick sample chips */}
+        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <span>Try sample synthetic URLs:</span>
+          <button 
+            onClick={() => { setInputUrl('https://secure-hospital-login.example/account'); runAnalysis('https://secure-hospital-login.example/account'); }}
+            style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}
+          >
+            secure-hospital-login.example (Phish)
+          </button>
+          <span>•</span>
+          <button 
+            onClick={() => { setInputUrl('https://ehr.northstar-med.internal/labs/8819'); runAnalysis('https://ehr.northstar-med.internal/labs/8819'); }}
+            style={{ color: 'var(--positive)', textDecoration: 'underline' }}
+          >
+            ehr.northstar-med.internal (Clean)
+          </button>
+        </div>
       </div>
 
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl overflow-hidden mt-8">
-        <div className="p-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]">
-          Recent Suspicious Links Detected
-        </div>
-        <div className="divide-y divide-[var(--border-color)]">
-          {linkEvents.length === 0 ? (
-            <div className="p-4 text-[var(--text-secondary)]">No suspicious links detected recently.</div>
-          ) : linkEvents.map(e => (
-            <div key={e.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--bg-tertiary)] transition-colors">
-              <div>
-                <p className="font-medium text-[var(--text-primary)] flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-[var(--critical)]" /> {e.title}
-                </p>
-                <p className="text-sm text-[var(--text-secondary)] mt-1">{e.description}</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">Target: {String(e.metadata?.url || 'Unknown')}</p>
+      {/* Analysis Result Card */}
+      {analysisResult && (
+        <div className="card animate-fade-in" style={{ padding: '2rem', backgroundColor: 'white' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span className={`badge ${
+                  analysisResult.riskLevel === 'CRITICAL' ? 'bg-critical-light' : 
+                  analysisResult.riskLevel === 'HIGH' ? 'bg-warning-light' : 'bg-positive-light'
+                }`}>
+                  {analysisResult.riskLevel} THREAT RISK
+                </span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Decision: {analysisResult.recommendedAction}
+                </span>
               </div>
-              <span className="text-sm text-[var(--text-muted)]">{new Date(e.timestamp).toLocaleString()}</span>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                {analysisResult.url}
+              </h2>
             </div>
-          ))}
+
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+                LinkGuard Score
+              </div>
+              <div style={{
+                fontSize: '2rem',
+                fontWeight: 800,
+                color: analysisResult.riskScore >= 65 ? 'var(--critical)' : 'var(--positive)',
+                lineHeight: 1,
+              }}>
+                {analysisResult.riskScore} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ 100</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Lexical & Structural Metrics Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.825rem' }}>
+              Domain: <strong style={{ color: 'var(--text-primary)' }}>{analysisResult.domain}</strong>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.825rem' }}>
+              Protocol: <strong style={{ color: 'var(--text-primary)' }}>{analysisResult.protocol}</strong>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.825rem' }}>
+              Target Port: <strong style={{ color: 'var(--text-primary)' }}>{analysisResult.port}</strong>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.825rem' }}>
+              Subdomain: <strong style={{ color: 'var(--text-primary)' }}>{analysisResult.subdomain}</strong>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.825rem' }}>
+              Encoding: <strong style={{ color: 'var(--text-primary)' }}>{analysisResult.encoding}</strong>
+            </div>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.825rem' }}>
+              Redirects: <strong style={{ color: 'var(--text-primary)' }}>{analysisResult.redirectIndicators}</strong>
+            </div>
+          </div>
+
+          {/* Explainable Reasons */}
+          <div style={{ marginBottom: '1.75rem' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Explainable Risk Reasons
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {analysisResult.reasons.map((r, i) => (
+                <div key={i} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  padding: '0.6rem 0.85rem',
+                  backgroundColor: 'var(--bg-main)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                }}>
+                  <AlertTriangle size={16} color={analysisResult.riskScore >= 60 ? 'var(--critical)' : 'var(--positive)'} />
+                  <span>{r}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Simulated Action Controls */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            paddingTop: '1.25rem',
+            borderTop: '1px solid var(--border)',
+          }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Actions modify synthetic in-memory state and log verification to the audit ledger.
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => executeAction('Block Link')}
+                className="btn btn-danger"
+                style={{ padding: '0.55rem 1.25rem' }}
+              >
+                <ShieldAlert size={16} /> Block Link
+              </button>
+              <button
+                onClick={() => executeAction('Allow Link')}
+                className="btn btn-secondary"
+                style={{ padding: '0.55rem 1.25rem' }}
+              >
+                <CheckCircle2 size={16} /> Allow
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('Incidents');
+                }}
+                className="btn btn-outline"
+                style={{ padding: '0.55rem 1.25rem' }}
+              >
+                Investigate in Incident Desk <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
