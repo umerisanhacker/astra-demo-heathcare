@@ -31,6 +31,7 @@ export default function Identity() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const identityEvents = events.filter(e => e.category === 'identity');
+  const activeIdentityEvents = identityEvents.filter(e => e.status === 'new' || e.status === 'acknowledged');
   const userEvents = identityEvents.filter(e => e.userId === selectedUser.id);
 
   const handleFlagAccount = (userId: string) => {
@@ -86,7 +87,7 @@ export default function Identity() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Identity Anomalies</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: identityEvents.length > 0 ? 'var(--critical)' : 'var(--positive)', marginTop: '0.2rem' }}>{identityEvents.length}</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: identityEvents.length > 0 ? 'var(--critical)' : 'var(--positive)', marginTop: '0.2rem' }}>{activeIdentityEvents.length}</div>
             </div>
             <div style={{ padding: '0.6rem', backgroundColor: 'var(--critical-bg)', borderRadius: '8px', color: 'var(--critical)' }}>
               <AlertTriangle size={22} />
@@ -117,7 +118,7 @@ export default function Identity() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {users.map(u => {
               const active = selectedUser.id === u.id;
-              const hasAlerts = identityEvents.some(e => e.userId === u.id);
+              const hasAlerts = activeIdentityEvents.some(e => e.userId === u.id);
               return (
                 <button
                   key={u.id}
