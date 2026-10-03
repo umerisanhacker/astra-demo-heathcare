@@ -5,7 +5,8 @@ import {
   useEvents, 
   useFlagUser, 
   useSelectIncident, 
-  useSetCurrentView 
+  useSetCurrentView,
+  useCreateIncidentFromEvent
 } from '../store/store';
 import { 
   Users, 
@@ -26,13 +27,15 @@ export default function Identity() {
   const flagUser = useFlagUser();
   const selectIncident = useSelectIncident();
   const setCurrentView = useSetCurrentView();
+  const createIncidentFromEvent = useCreateIncidentFromEvent();
 
   const [selectedUser, setSelectedUser] = useState<SimulatedUser>(users[0]);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const identityEvents = events.filter(e => e.category === 'identity');
   const activeIdentityEvents = identityEvents.filter(e => e.status === 'new' || e.status === 'acknowledged');
-  const userEvents = identityEvents.filter(e => e.userId === selectedUser.id);
+  const userEvents = identityEvents.filter(e => e.userId === selectedUser.id && (e.status === 'new' || e.status === 'acknowledged'));
+  const latestActiveUserEvent = [...userEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
   const handleFlagAccount = (userId: string) => {
     flagUser(userId);
@@ -267,7 +270,7 @@ export default function Identity() {
               className="btn btn-outline"
               style={{ width: '100%', fontSize: '0.85rem' }}
             >
-              Investigate Associated Incident in SOC Workspace <ArrowRight size={15} />
+              Open in SOC Investigation Workspace <ArrowRight size={15} />
             </button>
           )}
         </div>
