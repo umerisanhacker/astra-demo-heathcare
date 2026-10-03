@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { 
   AppState, 
@@ -278,6 +278,12 @@ export function useRunFullChain() {
   const { state, dispatch } = useStore();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   return useCallback(() => {
     if (state.isRunningChain) return;
 
@@ -338,36 +344,8 @@ export function useRunFullChain() {
         currentStepIndex++;
         timerRef.current = setTimeout(executeNextStep, 950);
       } else {
-        // Step 11: Final Incident Created & Completion
-        dispatch({ type: 'SET_ATTACK_CHAIN_PROGRESS', payload: 11 });
-        dispatch({ type: 'SET_RUNNING_CHAIN', payload: false });
-        dispatch({ type: 'SET_SELECTED_INCIDENT', payload: 'INC-001' });
-        dispatch({
-          type: 'ADD_AUDIT',
-          payload: {
-            id: `aud-finish-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            actor: 'Kill-Chain Automator',
-            system: 'SOC Incident Desk',
-            action: 'Step 11/11: Kill-chain complete; Incident INC-001 workspace prepared',
-            outcome: 'success',
-            details: 'Ready for analyst investigation and containment workflows.',
-          }
-        });
-        dispatch({
-          type: 'ADD_NOTIFICATION',
-          payload: {
-            id: `not-complete-${Date.now()}`,
-            title: 'KILL CHAIN COMPLETED',
-            message: 'All 11 phases executed and correlated. Opening Incident INC-001.',
-            timestamp: new Date().toISOString(),
-            read: false,
-            severity: 'critical',
-            relatedIncidentId: 'INC-001',
-            targetView: 'Incidents',
-          }
-        });
-        dispatch({ type: 'SET_VIEW', payload: 'Incidents' });
+        // Step 11: Let the reducer resolve the actual correlated incident ID from current state.
+        dispatch({ type: 'FINALIZE_ATTACK_CHAIN' });
       }
     };
 
