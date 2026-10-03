@@ -103,13 +103,17 @@ export default function LinkGuard() {
     }, 400);
   };
 
-  // Run initial analysis on mount or when an intercepted event arrives
+  // Re-run the inspector whenever the central event stream receives a new
+  // LinkGuard signal. This is what makes Attack Simulator -> LinkGuard a live
+  // workflow instead of a static page.
   useEffect(() => {
-    if (!analysisResult) {
-      const latestUrl = (linkEvents[0]?.metadata?.url as string) || inputUrl;
+    const latestUrl = (linkEvents.find(e => e.status === 'new' || e.status === 'acknowledged')?.metadata?.url as string) || inputUrl;
+    if (latestUrl) {
       setInputUrl(latestUrl);
       runAnalysis(latestUrl);
     }
+    // The dependency intentionally tracks event count: the simulator appends events.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkEvents.length]);
 
   const handleAnalyze = () => {
