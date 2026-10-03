@@ -149,9 +149,7 @@ export default function AttachmentSecurity() {
                     </div>
                   </div>
 
-                  <span className={`badge ${att.decision === 'QUARANTINED' ? 'bg-critical-light' : 'bg-positive-light'}`}>
-                    {att.decision}
-                  </span>
+                  <DecisionBadge status={att.decision === 'QUARANTINED' ? 'quarantined' : att.decision === 'SUSPICIOUS' ? 'pending' : 'allowed'} />
                 </button>
               );
             })}
@@ -162,9 +160,12 @@ export default function AttachmentSecurity() {
         <div className="card" style={{ padding: '2rem', backgroundColor: 'white' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
             <div>
-              <span className={`badge ${selectedAtt.riskScore >= 70 ? 'bg-critical-light' : 'bg-positive-light'}`} style={{ marginBottom: '0.35rem' }}>
-                {selectedAtt.decision} (RISK: {selectedAtt.riskScore}/100)
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.35rem' }}>
+                <DecisionBadge status={selectedAtt.decision === 'QUARANTINED' ? 'quarantined' : selectedAtt.decision === 'SUSPICIOUS' ? 'pending' : 'allowed'} />
+                <span className={`badge ${selectedAtt.riskScore >= 70 ? 'bg-critical-light' : 'bg-positive-light'}`}>
+                  RISK: {selectedAtt.riskScore}/100
+                </span>
+              </div>
               <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                 {selectedAtt.filename}
               </h2>
