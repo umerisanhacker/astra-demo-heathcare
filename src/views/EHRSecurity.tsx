@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { 
   useEHRAccesses, 
+  useEvents,
   usePatients, 
   useApproveBreakGlass, 
   useDeclineBreakGlass,
+  useResolveSecurityEvent,
+  useCreateIncidentFromEvent,
   useSelectIncident, 
   useSetCurrentView 
 } from '../store/store';
@@ -15,9 +18,12 @@ import {
 
 export default function EHRSecurity() {
   const ehrAccesses = useEHRAccesses();
+  const events = useEvents();
   const patients = usePatients();
   const approveBreakGlass = useApproveBreakGlass();
   const declineBreakGlass = useDeclineBreakGlass();
+  const resolveSecurityEvent = useResolveSecurityEvent();
+  const createIncidentFromEvent = useCreateIncidentFromEvent();
   const selectIncident = useSelectIncident();
   const setCurrentView = useSetCurrentView();
 
@@ -26,8 +32,13 @@ export default function EHRSecurity() {
 
   const breakGlassSessions = ehrAccesses.filter(a => a.isBreakGlass);
   const pendingBreakGlassSessions = breakGlassSessions.filter(a => a.breakGlassDecision === 'pending' || (!a.breakGlassApproved && a.breakGlassDecision !== 'declined'));
-  const anomalousAccesses = ehrAccesses.filter(a => a.isAnomalous && !a.isBreakGlass);
+  const anomalousAccesses = ehrAccesses.filter(a => {
+    if (!a.isAnomalous || a.isBreakGlass) return false;
+    if (!a.relatedEventId) return true;
+    return events.some(e => e.id === a.relatedEventId && (e.status === 'new' || e.status === 'acknowledged'));
+  });
   const latestAnomaly = anomalousAccesses[0];
+
 
   const handleApproveBreakGlass = (accessId: string) => {
     approveBreakGlass(accessId);
@@ -121,19 +132,36 @@ export default function EHRSecurity() {
             </div>
 
             <button
-              onClick={() => {
-                if (latestAnomaly) {
-                  const event = ehrAccesses.find(a => a.id === latestAnomaly.id);
-                  if (event) {
-                    setCurrentView('Incidents');
-                  }
-                }
-              }}
-              className="btn btn-primary"
-              style={{ backgroundColor: 'var(--critical)', fontSize: '0.85rem' }}
-            >
-              Open Investigation <ArrowRight size={15} />
-            </button>
+              <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    if (latestAnomaly?.relatedEventId) {
+                      createIncidentFromEvent(latestAnomaly.relatedEventId);
+                    } else {
+                      setCurrentView('Incidents');
+                    }
+                  }}
+                  className="btn btn-primary"
+                  style={{ backgroundColor: 'var(--critical)', fontSize: '0.85rem' }}
+                >
+                  Open SOC Investigation <ArrowRight size={15} />
+                </button>
+                {latestAnomaly?.relatedEventId && (
+                  <button
+                    onClick={() => {
+                      resolveSecurityEvent(
+                        latestAnomaly.relatedEventId!,
+                        'EHR anomaly reviewed',
+                        'Synthetic clinical access anomaly reviewed by the SOC operator.'
+                      );
+                    }}
+                    className="btn btn-outline"
+                    style={{ fontSize: '0.85rem', borderColor: 'rgba(16,185,129,.4)', color: 'var(--positive)' }}
+                  >
+                    <CheckCircle2 size={15} /> Mark Reviewed
+                  </button>
+                )}
+              </div>
           </div>
 
           <div style={{
