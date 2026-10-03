@@ -273,7 +273,7 @@ export default function EmailSecurity() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => { releaseEmail(selectedEmail.id); setSelectedEmail(null); setActiveTab('inbox'); }}
+                    onClick={() => { releaseEmail(selectedEmail.id); setSelectedEmailId(null); setActiveTab('inbox'); }}
                     className="btn btn-outline"
                     style={{ color: 'var(--positive)', borderColor: 'rgba(16, 185, 129, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
                   >
