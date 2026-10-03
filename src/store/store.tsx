@@ -174,22 +174,22 @@ export function useQuarantineEmail() {
 
 export function useReleaseEmail() {
   const { dispatch } = useStore();
-  return useCallback((emailId: string) => {
-    dispatch({ type: 'RELEASE_EMAIL', payload: { emailId } });
+  return useCallback((emailId: string, reason?: string) => {
+    dispatch({ type: 'RELEASE_EMAIL', payload: { emailId, reason } });
   }, [dispatch]);
 }
 
 export function useQuarantineAttachment() {
   const { dispatch } = useStore();
-  return useCallback((attachmentId: string) => {
-    dispatch({ type: 'QUARANTINE_ATTACHMENT', payload: { attachmentId } });
+  return useCallback((attachmentId: string, reason?: string) => {
+    dispatch({ type: 'QUARANTINE_ATTACHMENT', payload: { attachmentId, reason } });
   }, [dispatch]);
 }
 
 export function useFlagUser() {
   const { dispatch } = useStore();
-  return useCallback((userId: string) => {
-    dispatch({ type: 'FLAG_USER', payload: { userId } });
+  return useCallback((userId: string, reason?: string) => {
+    dispatch({ type: 'FLAG_USER', payload: { userId, reason } });
   }, [dispatch]);
 }
 
