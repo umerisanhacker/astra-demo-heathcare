@@ -988,9 +988,8 @@ export function rootReducer(state: AppState, action: Action): AppState {
 
       return {
         ...state,
-        incidents: updatedIncidents,
+        incidents: synchronizeIncidentStatuses(updatedIncidents, updatedEvents),
         events: updatedEvents,
-        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         selectedIncidentId: status === 'resolved' ? null : state.selectedIncidentId,
         notifications: status === 'resolved'
