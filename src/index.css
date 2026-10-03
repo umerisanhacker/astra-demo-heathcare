@@ -355,6 +355,73 @@ h3 { font-size: 1.05rem; }
 .bg-positive-light { background: var(--positive-bg); color: var(--positive); }
 .bg-accent-light { background: #e5f6fb; color: var(--accent-primary); }
 
+/* Shared response decision language — used consistently across every security module. */
+.decision-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .34rem;
+  width: fit-content;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .045em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.decision-badge-sm { min-height: 24px; padding: .28rem .62rem; font-size: .64rem; }
+.decision-badge-md { min-height: 30px; padding: .36rem .78rem; font-size: .7rem; }
+
+.status-pending {
+  color: #8a5a00;
+  background: #fff7df;
+  border-color: #f2d58b;
+}
+.status-approved, .status-allowed, .status-contained {
+  color: #087a5a;
+  background: #e9faf3;
+  border-color: #a9e5cf;
+}
+.status-blocked, .status-quarantined, .status-isolated {
+  color: #b4232b;
+  background: #fff0f1;
+  border-color: #f4b8bc;
+}
+.status-declined {
+  color: #7c3aed;
+  background: #f4efff;
+  border-color: #d9c9ff;
+}
+.status-reviewed, .status-resolved {
+  color: #2d6fb7;
+  background: #edf6ff;
+  border-color: #b9d8f7;
+}
+
+.decision-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .85rem;
+  padding: .72rem .9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(245,249,252,.92));
+}
+.decision-tile-copy { min-width: 0; }
+.decision-tile-label {
+  font-size: .64rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.decision-tile-value {
+  margin-top: .15rem;
+  color: var(--text-primary);
+  font-size: .82rem;
+  font-weight: 750;
+}
+
 .table-shell {
   overflow-x: auto;
   border: 1px solid var(--border);
