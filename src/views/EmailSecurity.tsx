@@ -271,7 +271,7 @@ export default function EmailSecurity() {
 
                 {selectedEmail.status === 'inbox' ? (
                   <button
-                    onClick={() => quarantineEmail(selectedEmail.id, 'Operator manual quarantine from Email Security view')}
+                    onClick={() => { quarantineEmail(selectedEmail.id, 'Operator manual quarantine from Email Security view'); setSelectedEmail(null); setActiveTab('quarantine'); }}
                     className="btn btn-outline"
                     style={{ color: 'var(--critical)', borderColor: 'rgba(239, 68, 68, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
                   >
@@ -279,7 +279,7 @@ export default function EmailSecurity() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => releaseEmail(selectedEmail.id)}
+                    onClick={() => { releaseEmail(selectedEmail.id); setSelectedEmail(null); setActiveTab('inbox'); }}
                     className="btn btn-outline"
                     style={{ color: 'var(--positive)', borderColor: 'rgba(16, 185, 129, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
                   >
