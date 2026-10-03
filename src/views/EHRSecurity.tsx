@@ -9,6 +9,7 @@ import {
   useCreateIncidentFromEvent,
   useSetCurrentView 
 } from '../store/store';
+import { DecisionBadge } from '../components/security/DecisionBadge';
 import { 
   Key, 
   CheckCircle2, 
@@ -308,9 +309,12 @@ export default function EHRSecurity() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <span className="badge bg-warning-light" style={{ marginBottom: '0.35rem' }}>
-                      {session.breakGlassDecision === 'approved' ? 'BREAK-GLASS REVIEWED & APPROVED' : session.breakGlassDecision === 'declined' ? 'BREAK-GLASS REVIEWED & DECLINED' : 'BREAK-GLASS ACTIVE — PENDING COMPLIANCE REVIEW'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: '.35rem' }}>
+                      <DecisionBadge status={session.breakGlassDecision === 'approved' ? 'approved' : session.breakGlassDecision === 'declined' ? 'declined' : 'pending'} />
+                      <span className="badge bg-warning-light">
+                        {session.breakGlassDecision === 'approved' ? 'BREAK-GLASS VERIFIED' : session.breakGlassDecision === 'declined' ? 'BREAK-GLASS REJECTED' : 'BREAK-GLASS PENDING REVIEW'}
+                      </span>
+                    </div>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                       Emergency Access: {session.doctorName} &rarr; {session.patientName}
                     </h4>
