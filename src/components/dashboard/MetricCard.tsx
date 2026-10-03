@@ -11,15 +11,25 @@ interface MetricCardProps {
 
 export default function MetricCard({ title, value, trend, trendUp, icon }: MetricCardProps) {
   const isNeutral = trend === 'Baseline stable' || trend === 'No active alerts' || trend === 'No active anomalies' || trend === 'Baseline quiet';
+  const valueNumber = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  const accent = title.includes('RISK') || title.includes('POSTURE')
+    ? (Number.isFinite(valueNumber) && valueNumber >= 90 ? 'var(--positive)' : Number.isFinite(valueNumber) && valueNumber >= 75 ? 'var(--warning)' : 'var(--critical)')
+    : title.includes('ALERT') || title.includes('INCIDENT') || title.includes('ANOMAL')
+      ? (Number.isFinite(valueNumber) && valueNumber === 0 ? 'var(--positive)' : 'var(--critical)')
+      : 'var(--accent-primary)';
 
   return (
-    <div className="card metric-card" style={{ padding: '1.1rem 1.15rem', background: 'rgba(255,255,255,.92)' }}>
+    <div className="card metric-card" style={{
+      padding: '1.1rem 1.15rem',
+      background: `linear-gradient(145deg, rgba(255,255,255,.98), color-mix(in srgb, ${accent} 5%, white))`,
+      borderTop: `3px solid ${accent}`,
+    }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '.75rem' }}>
         <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: '.67rem', fontWeight: 800, letterSpacing: '.07em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
             {title}
           </p>
-          <p style={{ fontSize: '1.7rem', lineHeight: 1.05, fontWeight: 800, color: 'var(--text-primary)', marginTop: '.55rem', letterSpacing: '-.035em' }}>
+          <p style={{ fontSize: '1.7rem', lineHeight: 1.05, fontWeight: 800, color: accent, marginTop: '.55rem', letterSpacing: '-.035em' }}>
             {value}
           </p>
         </div>
@@ -31,8 +41,8 @@ export default function MetricCard({ title, value, trend, trendUp, icon }: Metri
           display: 'grid',
           placeItems: 'center',
           borderRadius: 12,
-          background: 'linear-gradient(145deg, #f4f9fc, #eaf3f8)',
-          border: '1px solid rgba(8,126,164,.08)',
+          background: `color-mix(in srgb, ${accent} 10%, white)`,
+          border: `1px solid color-mix(in srgb, ${accent} 18%, white)`,
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,.9)',
         }}>
           {icon}
