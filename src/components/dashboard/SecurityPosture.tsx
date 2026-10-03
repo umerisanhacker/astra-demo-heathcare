@@ -16,8 +16,8 @@ export default function SecurityPosture({ posture }: Props) {
 
   const getStrokeColor = (score: number) => {
     if (score >= 90) return 'var(--positive)';
-    if (score >= 75) return 'var(--accent-primary)';
-    if (score >= 60) return 'var(--warning)';
+    if (score >= 75) return '#eab308';
+    if (score >= 60) return '#f97316';
     return 'var(--critical)';
   };
 
