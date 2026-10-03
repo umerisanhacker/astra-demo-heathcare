@@ -79,6 +79,29 @@ export function rootReducer(state: AppState, action: Action): AppState {
             attachments: ['patient_billing_manifest.zip'],
           };
           updatedEmails = [newEmail, ...updatedEmails];
+
+          // Phishing mail carries a synthetic attachment so the same simulation
+          // propagates into Attachment Security without requiring a second click.
+          const newAttachment = {
+            id: `att-sim-${Date.now()}`,
+            filename: 'patient_billing_manifest.zip',
+            extension: '.zip' as const,
+            detectedType: 'ZIP Archive (Synthetic)',
+            size: '2.8 MB',
+            hash: '7b3d4f0f8c2a9e11b8d4a7c1f0e6aa2c1d5f8b3e6c9a0d2f4b7e1c3a5d9f0b2',
+            archiveDepth: 2,
+            nestedFilesCount: 7,
+            compressionRatio: 'HIGH' as const,
+            executableContent: true,
+            scriptIndicators: true,
+            riskScore: 91,
+            decision: 'SUSPICIOUS' as const,
+            uploadedAt: timestamp,
+            sender: 'hospital-billing@hospital-support.example',
+          };
+          // Attach it to the synthetic inbox event so Email Security and
+          // Attachment Security tell the same story.
+          updatedAttachments = [newAttachment, ...updatedAttachments];
           break;
         }
 
