@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useStore, useEvents, useSetCurrentView } from '../store/store';
+import { useStore, useEvents, useSetCurrentView, useResolveSecurityEvent } from '../store/store';
 import { 
   Link as LinkIcon, 
   ShieldAlert, 
@@ -14,6 +14,7 @@ export default function LinkGuard() {
   const { dispatch } = useStore();
   const events = useEvents();
   const setCurrentView = useSetCurrentView();
+  const resolveSecurityEvent = useResolveSecurityEvent();
 
   const linkEvents = events.filter(e => e.category === 'linkguard');
 
@@ -127,18 +128,19 @@ export default function LinkGuard() {
 
   const executeAction = (actionName: string) => {
     setSimulatedAction(actionName);
-    
-    const newAudit: AuditEvent = {
-      id: `aud-lg-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      actor: 'Security Analyst (LinkGuard Console)',
-      system: 'LinkGuard Safe-Proxy',
-      action: `Simulated Link Policy: ${actionName} for "${inputUrl}"`,
-      outcome: actionName === 'Block Link' ? 'success' : 'warning',
-      details: `Operator enacted recommended policy ${actionName}. Domain added to DNS sinkhole filter.`,
-    };
+    const eventId = latestLinkEvent?.id;
 
-    dispatch({ type: 'ADD_AUDIT', payload: newAudit });
+    if (eventId) {
+      resolveSecurityEvent(
+        eventId,
+        actionName,
+        `Operator enacted ${actionName} for ${inputUrl}. The finding remains available in the event and audit history.`,
+      );
+    }
+
+    // Once an analyst has chosen a response, remove the active explanation card.
+    // The underlying finding remains visible in historical telemetry/audit views.
+    setAnalysisResult(null);
     setTimeout(() => setSimulatedAction(null), 3000);
   };
 
