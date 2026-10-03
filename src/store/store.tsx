@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- Store intentionally co-locates the provider and its hooks as the single state API. */
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { 
