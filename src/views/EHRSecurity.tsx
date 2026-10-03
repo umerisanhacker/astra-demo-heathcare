@@ -10,6 +10,7 @@ import {
   useSetCurrentView 
 } from '../store/store';
 import { DecisionBadge } from '../components/security/DecisionBadge';
+import ActionNoteModal from '../components/security/ActionNoteModal';
 import { 
   Key, 
   CheckCircle2, 
@@ -28,6 +29,7 @@ export default function EHRSecurity() {
 
   const [activeTab, setActiveTab] = useState<'access_logs' | 'velocity' | 'break_glass' | 'patients'>('access_logs');
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
+  const [breakGlassReview, setBreakGlassReview] = useState<{ accessId: string; action: 'approve' | 'decline' } | null>(null);
 
   const breakGlassSessions = ehrAccesses.filter(a => a.isBreakGlass);
   const pendingBreakGlassSessions = breakGlassSessions.filter(a => a.breakGlassDecision === 'pending' || (!a.breakGlassApproved && a.breakGlassDecision !== 'declined'));
@@ -39,14 +41,16 @@ export default function EHRSecurity() {
   const latestAnomaly = anomalousAccesses[0];
 
 
-  const handleApproveBreakGlass = (accessId: string) => {
-    approveBreakGlass(accessId);
+  const handleApproveBreakGlass = (accessId: string, note: string) => {
+    approveBreakGlass(accessId, note || undefined);
+    setBreakGlassReview(null);
     setApprovalFeedback(`Break-glass access for session ${accessId} officially approved and committed to the compliance audit ledger.`);
     setTimeout(() => setApprovalFeedback(null), 3500);
   };
 
-  const handleDeclineBreakGlass = (accessId: string) => {
-    declineBreakGlass(accessId);
+  const handleDeclineBreakGlass = (accessId: string, note: string) => {
+    declineBreakGlass(accessId, note || undefined);
+    setBreakGlassReview(null);
     setApprovalFeedback(`Break-glass access for session ${accessId} was declined and recorded for compliance review.`);
     setTimeout(() => setApprovalFeedback(null), 3500);
   };
@@ -223,6 +227,20 @@ export default function EHRSecurity() {
         </div>
       )}
 
+      <ActionNoteModal
+        open={breakGlassReview !== null}
+        title={breakGlassReview?.action === 'approve' ? 'Approve emergency break-glass access' : 'Decline emergency break-glass access'}
+        description="Record the clinical compliance decision. The optional note is written to the synthetic audit ledger."
+        actionLabel={breakGlassReview?.action === 'approve' ? 'Authenticate & Approve' : 'Decline / Reject'}
+        actionTone={breakGlassReview?.action === 'approve' ? 'primary' : 'danger'}
+        onCancel={() => setBreakGlassReview(null)}
+        onConfirm={(note) => {
+          if (!breakGlassReview) return;
+          if (breakGlassReview.action === 'approve') handleApproveBreakGlass(breakGlassReview.accessId, note);
+          else handleDeclineBreakGlass(breakGlassReview.accessId, note);
+        }}
+      />
+
       {/* TAB CONTENT */}
       {activeTab === 'access_logs' && (
         <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white' }}>
@@ -326,14 +344,14 @@ export default function EHRSecurity() {
                   {session.breakGlassDecision !== 'approved' && session.breakGlassDecision !== 'declined' && (
                     <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                       <button
-                        onClick={() => handleApproveBreakGlass(session.id)}
+                        onClick={() => setBreakGlassReview({ accessId: session.id, action: 'approve' })}
                         className="btn btn-primary"
                         style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', backgroundColor: 'var(--positive)' }}
                       >
                         <CheckCircle2 size={15} /> Authenticate & Approve
                       </button>
                       <button
-                        onClick={() => handleDeclineBreakGlass(session.id)}
+                        onClick={() => setBreakGlassReview({ accessId: session.id, action: 'decline' })}
                         className="btn btn-outline"
                         style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', borderColor: 'rgba(239,68,68,.4)', color: 'var(--critical)' }}
                       >
