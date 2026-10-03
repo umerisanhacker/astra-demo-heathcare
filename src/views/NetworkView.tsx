@@ -1,4 +1,5 @@
 import { DecisionBadge } from '../components/security/DecisionBadge';
+import ActionNoteModal from '../components/security/ActionNoteModal';
 import { useState } from 'react';
 import { 
   useEvents, 
@@ -23,11 +24,13 @@ export default function NetworkView() {
   const [selectedNodeId, setSelectedNodeId] = useState<string>(state.networkNodes[2]?.id || state.networkNodes[0]?.id || '');
   const selectedNode = state.networkNodes.find(node => node.id === selectedNodeId) || state.networkNodes[0];
   const [isolationNotice, setIsolationNotice] = useState<string | null>(null);
+  const [showIsolationReview, setShowIsolationReview] = useState(false);
 
   const networkEvents = events.filter(e => e.category === 'network' && (e.status === 'new' || e.status === 'acknowledged'));
 
-  const handleIsolateNode = (node: NetworkTelemetryNode) => {
-    isolateNetworkNode(node.id);
+  const handleIsolateNode = (node: NetworkTelemetryNode, note: string) => {
+    isolateNetworkNode(node.id, note || undefined);
+    setShowIsolationReview(false);
     setIsolationNotice(`Node ${node.name} (${node.ip}) isolated into synthetic Quarantine VLAN.`);
     setTimeout(() => setIsolationNotice(null), 3500);
   };
@@ -168,13 +171,23 @@ export default function NetworkView() {
             </div>
 
             <button
-              onClick={() => selectedNode && handleIsolateNode(selectedNode)}
+              onClick={() => selectedNode && setShowIsolationReview(true)}
               className="btn btn-outline"
               style={{ color: 'var(--critical)', borderColor: 'rgba(239, 68, 68, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
             >
               <ShieldAlert size={14} /> Isolate Node
             </button>
           </div>
+
+          <ActionNoteModal
+            open={showIsolationReview}
+            title={`Review network isolation — ${selectedNode?.name || 'node'}`}
+            description="Confirm the containment decision. The optional note is stored in the synthetic audit ledger for traceability."
+            actionLabel="Isolate Node"
+            actionTone="danger"
+            onCancel={() => setShowIsolationReview(false)}
+            onConfirm={(note) => selectedNode && handleIsolateNode(selectedNode, note)}
+          />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
