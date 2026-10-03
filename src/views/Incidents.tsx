@@ -79,6 +79,11 @@ export default function Incidents() {
       ? state.emails.find(email => relatedEmailEvent.actor && email.recipientName === relatedEmailEvent.actor && email.status !== 'quarantined')
         || state.emails.find(email => email.risk === 'high' || email.risk === 'critical')
       : undefined;
+    const incidentResolved = activeIncident.status === 'resolved';
+    const incidentContained = activeIncident.status === 'contained';
+    const canContain = !incidentResolved && !incidentContained;
+    const canResolve = !incidentResolved;
+    const canExecutePlaybooks = !incidentResolved;
 
     return (
       <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -96,30 +101,33 @@ export default function Incidents() {
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
               Incident Lifecycle Status:
             </span>
-            <select
-              value={activeIncident.status}
-              onChange={(e) => updateStatus(activeIncident.id, e.target.value as IncidentStatus)}
-              style={{
-                padding: '0.45rem 0.85rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                backgroundColor: 'white',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                color: 'var(--text-primary)',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="new">NEW</option>
-              <option value="active">ACTIVE</option>
-              <option value="investigating">INVESTIGATING</option>
-              <option value="contained">CONTAINED</option>
-              <option value="resolved">RESOLVED</option>
-              <option value="escalated">ESCALATED</option>
-            </select>
-          </div>
-        </div>
+            {incidentResolved ? (
+              <span className="badge bg-positive-light">RESOLVED — FINAL</span>
+            ) : (
+              <select
+                value={activeIncident.status}
+                onChange={(e) => updateStatus(activeIncident.id, e.target.value as IncidentStatus)}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="new">NEW</option>
+                <option value="active">ACTIVE</option>
+                <option value="investigating">INVESTIGATING</option>
+                <option value="contained">CONTAINED</option>
+                <option value="resolved">RESOLVED</option>
+                <option value="escalated">ESCALATED</option>
+              </select>
+            )}
+          </div>        </div>
 
         {/* Action feedback banner */}
         {actionFeedback && (
@@ -332,50 +340,63 @@ export default function Incidents() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <button
+                {canExecutePlaybooks && (<button
                   onClick={() => derivedDeviceId && handleAction(`Isolate Device ${derivedDeviceId}`, () => isolateDevice(derivedDeviceId))}
                   className="btn btn-outline"
                   disabled={!derivedDeviceId}
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: 'var(--critical)', opacity: derivedDeviceId ? 1 : 0.5 }}
                 >
                   <ShieldAlert size={16} /> {derivedDeviceId ? `Isolate Simulated Device (${derivedDeviceId})` : 'No related device signal'}
-                </button>
-
-                <button
+                </button>)}
+                {canExecutePlaybooks && (<button
                   onClick={() => incidentUserId && handleAction('Flag User Account & Enforce Credential Reset', () => flagUser(incidentUserId))}
                   className="btn btn-outline"
                   disabled={!incidentUserId}
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: 'var(--warning)', opacity: incidentUserId ? 1 : 0.5 }}
                 >
                   <User size={16} /> {incidentUserId ? `Flag Account & Revoke Active Tokens (${incidentUserId})` : 'No affected account'}
-                </button>
-
-                <button
+                </button>)}
+                {canExecutePlaybooks && (<button
                   onClick={() => relatedEmail && handleAction('Quarantine Related Email', () => quarantineEmail(relatedEmail.id))}
                   className="btn btn-outline"
                   disabled={!relatedEmail}
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', opacity: relatedEmail ? 1 : 0.5 }}
                 >
                   <Mail size={16} /> {relatedEmail ? `Quarantine Related Email (${relatedEmail.id})` : 'No related email'}
-                </button>
-
-                <button
+                </button>)}
+                {canContain && (<button
                   onClick={() => handleAction('Transition Incident to CONTAINED', () => updateStatus(activeIncident.id, 'contained'))}
                   className="btn btn-secondary"
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem' }}
                 >
                   <Check size={16} /> Mark Threat Contained
-                </button>
-
-                <button
+                </button>)}
+                {canResolve && (<button
                   onClick={() => handleAction('Resolve Incident and Recalculate Posture', () => updateStatus(activeIncident.id, 'resolved'))}
                   className="btn btn-primary"
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', backgroundColor: 'var(--positive)' }}
                 >
                   <CheckCircle2 size={16} /> Mark Fully Resolved
-                </button>
+                </button>)}
               </div>
-            </div>
+ 
+                {incidentResolved && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '.55rem',
+                    padding: '.7rem .85rem',
+                    borderRadius: '9px',
+                    background: 'var(--positive-bg)',
+                    border: '1px solid rgba(18,150,111,.22)',
+                    color: 'var(--positive)',
+                    fontSize: '.8rem',
+                    fontWeight: 700,
+                  }}>
+                    <CheckCircle2 size={16} /> Incident fully resolved — no further response action required.
+                  </div>
+                )}
+              </div>           </div>
 
             {/* Investigation Notes */}
             <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
