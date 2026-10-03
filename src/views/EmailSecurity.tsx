@@ -7,6 +7,7 @@ import {
   useEvents
 } from '../store/store';
 import { DecisionBadge } from '../components/security/DecisionBadge';
+import ActionNoteModal from '../components/security/ActionNoteModal';
 import { 
   AlertTriangle, 
   ShieldAlert, 
@@ -30,6 +31,7 @@ export default function EmailSecurity() {
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(emails[0]?.id ?? null);
   const selectedEmail = emails.find(email => email.id === selectedEmailId) ?? emails[0] ?? null;
   const [searchFilter, setSearchFilter] = useState('');
+  const [reviewAction, setReviewAction] = useState<'quarantine' | 'release' | null>(null);
 
 
   const latestSimulatedEmail = emails.find(em => em.id.startsWith('em-sim-'));
@@ -115,6 +117,31 @@ export default function EmailSecurity() {
           })}
         </div>
       </div>
+
+      {selectedEmail && (
+        <ActionNoteModal
+          open={reviewAction !== null}
+          title={reviewAction === 'quarantine' ? `Review email — ${selectedEmail.subject}` : `Review release — ${selectedEmail.subject}`}
+          description={reviewAction === 'quarantine'
+            ? 'Confirm quarantine after reviewing sender, authentication, links, and attachment evidence.'
+            : 'Confirm release after reviewing the message and false-positive indicators.'}
+          actionLabel={reviewAction === 'quarantine' ? 'Quarantine Message' : 'Release to Inbox'}
+          actionTone={reviewAction === 'quarantine' ? 'danger' : 'primary'}
+          onCancel={() => setReviewAction(null)}
+          onConfirm={(note) => {
+            if (reviewAction === 'quarantine') {
+              quarantineEmail(selectedEmail.id, note || 'Operator manual quarantine from Email Security view');
+              setSelectedEmailId(null);
+              setActiveTab('quarantine');
+            } else {
+              releaseEmail(selectedEmail.id, note || undefined);
+              setSelectedEmailId(null);
+              setActiveTab('inbox');
+            }
+            setReviewAction(null);
+          }}
+        />
+      )}
 
       {latestSimulatedEmail && latestSimulatedEmail.id === emails[0]?.id && (
         <div className="card animate-fade-in" style={{
@@ -272,7 +299,7 @@ export default function EmailSecurity() {
 
                 {selectedEmail.status === 'inbox' ? (
                   <button
-                    onClick={() => { quarantineEmail(selectedEmail.id, 'Operator manual quarantine from Email Security view'); setSelectedEmailId(null); setActiveTab('quarantine'); }}
+                    onClick={() => setReviewAction('quarantine')}
                     className="btn btn-outline"
                     style={{ color: 'var(--critical)', borderColor: 'rgba(239, 68, 68, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
                   >
@@ -280,7 +307,7 @@ export default function EmailSecurity() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => { releaseEmail(selectedEmail.id); setSelectedEmailId(null); setActiveTab('inbox'); }}
+                    onClick={() => setReviewAction('release')}
                     className="btn btn-outline"
                     style={{ color: 'var(--positive)', borderColor: 'rgba(16, 185, 129, 0.4)', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
                   >
