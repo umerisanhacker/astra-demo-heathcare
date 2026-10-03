@@ -736,7 +736,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         users: state.users.map(u => u.id === userId ? { ...u, status: 'flagged' as const } : u),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
-        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.userId === userId && ev.status === 'acknowledged')),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.userId === userId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -763,7 +763,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const updatedEvents = state.events.map(ev =>
         (ev.deviceId === deviceId || (ev.category === 'network' && String(ev.metadata.sourceIP || '') === dev?.ip)) && ev.status !== 'resolved'
-          ? { ...ev, status: 'acknowledged' as const }
+          ? { ...ev, status: 'resolved' as const }
           : ev
       );
       return {
@@ -771,7 +771,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         devices: state.devices.map(d => d.id === deviceId ? { ...d, status: 'isolated' as const } : d),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
-        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.deviceId === deviceId && ev.status === 'acknowledged')),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.deviceId === deviceId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -814,6 +814,9 @@ export function rootReducer(state: AppState, action: Action): AppState {
         incidents: updatedIncidents,
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
+        notifications: status === 'resolved'
+          ? state.notifications.filter(n => !n.relatedIncidentId || n.relatedIncidentId !== incidentId)
+          : state.notifications,
         auditLog: [newAudit, ...state.auditLog],
       };
     }
