@@ -685,6 +685,52 @@ export function rootReducer(state: AppState, action: Action): AppState {
     case 'SET_RUNNING_CHAIN':
       return { ...state, isRunningChain: action.payload };
 
+    case 'FINALIZE_ATTACK_CHAIN': {
+      const activeIncident = [...state.incidents]
+        .filter(i => i.status !== 'resolved')
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+
+      const now = new Date().toISOString();
+      const incidentId = activeIncident?.id;
+      const audit: AuditEvent = {
+        id: `aud-finish-${Date.now()}`,
+        timestamp: now,
+        actor: 'Kill-Chain Automator',
+        system: 'SOC Incident Desk',
+        action: incidentId
+          ? `Step 11/11: Kill-chain complete; Incident ${incidentId} workspace prepared`
+          : 'Step 11/11: Kill-chain complete; no active incident was synthesized',
+        outcome: incidentId ? 'success' : 'warning',
+        details: incidentId
+          ? 'Ready for analyst investigation and containment workflows.'
+          : 'Telemetry was generated successfully but the correlation engine did not produce an active incident.',
+      };
+
+      const notification: AppNotification = {
+        id: `not-complete-${Date.now()}`,
+        title: incidentId ? 'KILL CHAIN COMPLETED' : 'KILL CHAIN COMPLETED — REVIEW TELEMETRY',
+        message: incidentId
+          ? `All attack stages executed and correlated. Opening Incident ${incidentId}.`
+          : 'All attack stages executed. Review the active security telemetry in the SOC workspace.',
+        timestamp: now,
+        read: false,
+        severity: incidentId ? 'critical' : 'high',
+        relatedIncidentId: incidentId,
+        targetView: 'Incidents',
+      };
+
+      return {
+        ...state,
+        attackChainProgress: 11,
+        isRunningChain: false,
+        selectedIncidentId: incidentId || null,
+        currentView: 'Incidents',
+        appMode: 'console',
+        notifications: [notification, ...state.notifications],
+        auditLog: [audit, ...state.auditLog],
+      };
+    }
+
     case 'SET_SEARCH':
       return { ...state, searchQuery: action.payload };
 
