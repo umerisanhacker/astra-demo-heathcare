@@ -807,7 +807,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'RELEASE_EMAIL': {
-      const { emailId } = action.payload;
+      const { emailId, reason } = action.payload;
       const target = state.emails.find(e => e.id === emailId);
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
@@ -816,7 +816,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Email Security Gateway',
         action: `Released email from quarantine: "${target?.subject || emailId}"`,
         outcome: 'success',
-        details: 'Analyst reviewed email body and false-positive indicators.',
+        details: reason || 'Analyst reviewed email body and false-positive indicators.',
       };
       const releasedEvents = state.events.map(ev =>
         ev.category === 'email' && ev.userId === target?.recipient?.split('@')[0]
@@ -835,7 +835,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'QUARANTINE_ATTACHMENT': {
-      const { attachmentId } = action.payload;
+      const { attachmentId, reason } = action.payload;
       const att = state.attachments.find(a => a.id === attachmentId);
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
@@ -844,7 +844,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Attachment Threat Sandbox',
         action: `Quarantined file: ${att?.filename || attachmentId}`,
         outcome: 'success',
-        details: 'Dynamic execution flagged malicious archive structure.',
+        details: reason || 'Dynamic execution flagged malicious archive structure.',
       };
       const updatedEvents = state.events.map(ev =>
         ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status !== 'resolved'
@@ -865,7 +865,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'FLAG_USER': {
-      const { userId } = action.payload;
+      const { userId, reason } = action.payload;
       const usr = state.users.find(u => u.id === userId);
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
@@ -874,7 +874,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Active Directory / IAM',
         action: `Flagged user account: ${usr?.name || userId} for password reset`,
         outcome: 'success',
-        details: 'Active SSO sessions revoked. Mandatory MFA re-enrollment required.',
+        details: reason || 'Active SSO sessions revoked. Mandatory MFA re-enrollment required.',
       };
       const updatedEvents = state.events.map(ev =>
         ev.userId === userId && ev.category === 'identity' && ev.status !== 'resolved'
