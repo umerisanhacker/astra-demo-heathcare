@@ -305,7 +305,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             system: 'Internal Clinical Firewall',
             status: 'new',
             riskContribution: 15,
-            metadata: { sourceIP: '10.0.0.45', rate: '520 pkts/sec', scannedPorts: '22, 80, 443, 8080, 8443' },
+            metadata: { sourceIP: '10.0.0.45', targetNodeId: 'node-fw', rate: '520 pkts/sec', scannedPorts: '22, 80, 443, 8080, 8443' },
           };
           auditAction = 'Simulated port scan pattern registered in NIDS';
           notifTitle = 'Clinical Subnet Port Scan Detected';
@@ -333,7 +333,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             system: 'DMZ Reverse Proxy',
             status: 'new',
             riskContribution: 16,
-            metadata: { attempts: 140, window: '60s', rateLimitTriggered: true },
+            metadata: { attempts: 140, targetNodeId: 'node-dmz', window: '60s', rateLimitTriggered: true },
           };
           auditAction = 'Simulated brute-force sequence logged and rate-limited';
           notifTitle = 'Brute Force Attempt Detected';
@@ -402,7 +402,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             system: 'Clinical API Gateway',
             status: 'new',
             riskContribution: 16,
-            metadata: { endpoint: '/synthetic-api/patient-records', pattern: 'Parameter tampering' },
+            metadata: { endpoint: '/synthetic-api/patient-records', targetNodeId: 'node-app', pattern: 'Parameter tampering' },
           };
           auditAction = 'Simulated application security probe registered on clinical API endpoint';
           notifTitle = 'API Access Anomaly Detected';
