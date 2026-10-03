@@ -19,6 +19,7 @@ export type Action =
   | { type: 'MARK_NOTIFICATIONS_READ' }
   | { type: 'SET_ATTACK_CHAIN_PROGRESS'; payload: number }
   | { type: 'SET_RUNNING_CHAIN'; payload: boolean }
+  | { type: 'FINALIZE_ATTACK_CHAIN' }
   | { type: 'SET_SEARCH'; payload: string }
   | { type: 'SET_VIEW'; payload: string }
   | { type: 'SET_APP_MODE'; payload: 'public' | 'console' }
