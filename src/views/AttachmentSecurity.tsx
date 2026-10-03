@@ -11,7 +11,6 @@ import {
   Archive, 
   CheckCircle2
 } from 'lucide-react';
-import type { SimulatedAttachment } from '../store/types';
 
 export default function AttachmentSecurity() {
   const attachments = useAttachments();
