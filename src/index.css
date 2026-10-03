@@ -441,12 +441,31 @@ h3 { font-size: 1.05rem; }
 }
 
 .metric-card {
-  min-height: 126px;
+  min-height: 156px;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
   transform-style: preserve-3d;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+
+.metric-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,.7) 42%, transparent 68%);
+  transform: translateX(-120%);
+  transition: transform .65s ease;
+  pointer-events: none;
 }
 
 .metric-card:hover {
-  transform: perspective(900px) rotateX(1.2deg) rotateY(-1.2deg) translateY(-4px);
+  transform: perspective(900px) rotateX(1.2deg) rotateY(-1.2deg) translateY(-5px);
+  box-shadow: 0 14px 34px rgba(31,63,88,.11);
+}
+
+.metric-card:hover::after {
+  transform: translateX(120%);
 }
 
 .security-shell {
