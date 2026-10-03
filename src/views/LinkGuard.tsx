@@ -212,9 +212,6 @@ export default function LinkGuard() {
             </h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '.55rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {latestHistoricalLinkEvent && (
-              <DecisionBadge status={deriveDecisionStatus(latestHistoricalLinkEvent)} />
-            )}
             <span className="badge bg-positive-light">LinkGuard Safe-Proxy Active</span>
           </div>
         </div>
