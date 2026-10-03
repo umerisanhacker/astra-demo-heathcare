@@ -36,14 +36,8 @@ export default function ApplicationSecurity() {
 
             <button
               onClick={() => {
-                const related = appEvents.find(e => e.relatedIncidentId);
-                if (related?.relatedIncidentId) {
-                  setCurrentView('Incidents');
-                } else if (appEvents[0]) {
-                  createIncidentFromEvent(appEvents[0].id);
-                } else {
-                  setCurrentView('Incidents');
-                }
+                if (appEvents[0]) createIncidentFromEvent(appEvents[0].id);
+                else setCurrentView('Incidents');
               }}
               className="btn btn-outline"
               style={{ fontSize: '0.85rem' }}
