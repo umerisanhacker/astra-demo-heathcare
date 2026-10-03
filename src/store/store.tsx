@@ -199,6 +199,13 @@ export function useIsolateDevice() {
   }, [dispatch]);
 }
 
+export function useIsolateNetworkNode() {
+  const { dispatch } = useStore();
+  return useCallback((nodeId: string) => {
+    dispatch({ type: 'ISOLATE_NETWORK_NODE', payload: { nodeId } });
+  }, [dispatch]);
+}
+
 export function useUpdateIncidentStatus() {
   const { dispatch } = useStore();
   return useCallback((incidentId: string, status: IncidentStatus) => {
