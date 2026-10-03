@@ -13,10 +13,18 @@ export default function MetricCard({ title, value, trend, trendUp, icon }: Metri
   const isNeutral = trend === 'Baseline stable' || trend === 'No active alerts' || trend === 'No active anomalies' || trend === 'Baseline quiet';
   const valueNumber = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
   const accent = title.includes('RISK') || title.includes('POSTURE')
-    ? (Number.isFinite(valueNumber) && valueNumber >= 90 ? 'var(--positive)' : Number.isFinite(valueNumber) && valueNumber >= 75 ? 'var(--warning)' : 'var(--critical)')
-    : title.includes('ALERT') || title.includes('INCIDENT') || title.includes('ANOMAL')
+    ? (Number.isFinite(valueNumber) && valueNumber >= 90 ? 'var(--positive)' : Number.isFinite(valueNumber) && valueNumber >= 75 ? '#eab308' : Number.isFinite(valueNumber) && valueNumber >= 60 ? '#f97316' : 'var(--critical)')
+    : title.includes('ACTIVE INCIDENTS')
       ? (Number.isFinite(valueNumber) && valueNumber === 0 ? 'var(--positive)' : 'var(--critical)')
-      : 'var(--accent-primary)';
+      : title.includes('SECURITY ALERTS')
+        ? (Number.isFinite(valueNumber) && valueNumber === 0 ? 'var(--accent-primary)' : 'var(--critical)')
+        : title.includes('IDENTITY')
+          ? (Number.isFinite(valueNumber) && valueNumber === 0 ? '#7c3aed' : 'var(--critical)')
+          : title.includes('EHR')
+            ? (Number.isFinite(valueNumber) && valueNumber === 0 ? '#0891b2' : 'var(--critical)')
+            : title.includes('NETWORK')
+              ? (Number.isFinite(valueNumber) && valueNumber === 0 ? '#2563eb' : 'var(--warning)')
+              : 'var(--accent-primary)';
 
   return (
     <div className="card metric-card" style={{
