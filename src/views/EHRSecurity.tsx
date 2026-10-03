@@ -311,7 +311,7 @@ export default function EHRSecurity() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <span className="badge bg-warning-light" style={{ marginBottom: '0.35rem' }}>
-                      session.breakGlassDecision === 'approved' ? 'BREAK-GLASS REVIEWED & APPROVED' : session.breakGlassDecision === 'declined' ? 'BREAK-GLASS REVIEWED & DECLINED' : 'BREAK-GLASS ACTIVE — PENDING COMPLIANCE REVIEW'
+                      {session.breakGlassDecision === 'approved' ? 'BREAK-GLASS REVIEWED & APPROVED' : session.breakGlassDecision === 'declined' ? 'BREAK-GLASS REVIEWED & DECLINED' : 'BREAK-GLASS ACTIVE — PENDING COMPLIANCE REVIEW'}
                     </span>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                       Emergency Access: {session.doctorName} &rarr; {session.patientName}
