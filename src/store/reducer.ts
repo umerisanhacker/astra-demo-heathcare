@@ -738,6 +738,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ...state,
         emails: updatedEmails,
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         auditLog: [newAudit, ...state.auditLog],
         notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
@@ -765,6 +766,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ...state,
         emails: state.emails.map(e => e.id === emailId ? { ...e, status: 'inbox' as const } : e),
         events: releasedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, releasedEvents),
         securityPosture: calculatePosture(releasedEvents),
         notifications: state.notifications.filter(n => !n.relatedEventId || !releasedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
@@ -794,6 +796,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
           a.id === attachmentId ? { ...a, decision: 'QUARANTINED' as const } : a
         ),
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
@@ -821,6 +824,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ...state,
         users: state.users.map(u => u.id === userId ? { ...u, status: 'flagged' as const } : u),
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.userId === userId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
@@ -856,6 +860,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ...state,
         devices: state.devices.map(d => d.id === deviceId ? { ...d, status: 'isolated' as const } : d),
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.deviceId === deviceId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
@@ -899,6 +904,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         ...state,
         incidents: updatedIncidents,
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         notifications: status === 'resolved'
           ? state.notifications.filter(n => !n.relatedIncidentId || n.relatedIncidentId !== incidentId)
@@ -949,6 +955,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
           a.id === accessId ? { ...a, breakGlassApproved: true, breakGlassDecision: 'approved', risk: 'low' as const } : a
         ),
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
@@ -980,6 +987,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
           a.id === accessId ? { ...a, breakGlassApproved: false, breakGlassDecision: 'declined', risk: 'medium' as const } : a
         ),
         events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
         notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
