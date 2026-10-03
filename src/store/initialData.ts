@@ -266,6 +266,7 @@ export const initialEHRAccesses: SimulatedEHRAccess[] = [
     isBreakGlass: true,
     breakGlassApproved: false,
     breakGlassDecision: 'pending',
+    relatedEventId: 'evt-base-02',
     risk: 'medium',
   },
   {
