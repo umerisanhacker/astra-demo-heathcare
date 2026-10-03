@@ -67,7 +67,6 @@ export default function Incidents() {
     const incidentEvents = events.filter(e => activeIncident.eventIds.includes(e.id))
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     const incidentUserId = activeIncident.affectedUserId;
-    const relatedIdentityEvent = incidentEvents.find(e => e.category === 'identity' && e.userId === incidentUserId);
     const relatedNetworkEvent = incidentEvents.find(e => e.category === 'network' && e.deviceId);
     const derivedDeviceId = relatedNetworkEvent?.deviceId || (
       relatedNetworkEvent?.metadata?.sourceIP
