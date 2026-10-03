@@ -323,7 +323,7 @@ export function useRunFullChain() {
             timestamp: new Date().toISOString(),
             actor: 'CareSentinel Correlation Engine',
             system: 'SOC Correlation Core',
-            action: 'Step 10/11: Multi-vector attack chain fused into critical incident INC-001',
+            action: 'Step 10/11: Multi-vector attack chain fused into a correlated incident',
             outcome: 'success',
             details: 'Linked 9 disparate alerts across Email, IAM, Network, and EHR into unified kill-chain.',
           }
@@ -333,7 +333,7 @@ export function useRunFullChain() {
           payload: {
             id: `not-corr-${Date.now()}`,
             title: 'ATTACK CHAIN FUSED',
-            message: 'All 9 stages correlated across 4 clinical domains. Critical incident INC-001 created.',
+            message: 'All 9 stages correlated across Email, IAM, Network, and EHR telemetry. Final incident identity is resolved from shared state.',
             timestamp: new Date().toISOString(),
             read: false,
             severity: 'critical',
