@@ -4,6 +4,19 @@ import { calculatePosture } from './riskEngine';
 import { correlateEvents, calculateIncidentRisk } from './correlationEngine';
 import { createInitialBaseline } from './initialData';
 
+function responseStatusForAction(actionName: string): SecurityEvent['responseStatus'] {
+  const action = actionName.toLowerCase();
+  if (action.includes('quarantine')) return 'quarantined';
+  if (action.includes('block')) return 'blocked';
+  if (action.includes('allow') || action.includes('release')) return 'allowed';
+  if (action.includes('approve')) return 'approved';
+  if (action.includes('decline') || action.includes('reject')) return 'declined';
+  if (action.includes('isolate')) return 'isolated';
+  if (action.includes('contain')) return 'contained';
+  if (action.includes('review')) return 'reviewed';
+  return 'resolved';
+}
+
 function synchronizeIncidentStatuses(incidents: AppState['incidents'], events: SecurityEvent[]): AppState['incidents'] {
   const now = new Date().toISOString();
   return incidents.map(incident => {
@@ -25,7 +38,9 @@ function resolveSecurityEvent(state: AppState, eventId: string, actionName: stri
   if (!target) return state;
 
   const updatedEvents = state.events.map(event =>
-    event.id === eventId ? { ...event, status: 'resolved' as const } : event
+    event.id === eventId
+      ? { ...event, status: 'resolved' as const, responseStatus: responseStatusForAction(actionName) }
+      : event
   );
 
   const updatedIncidents = synchronizeIncidentStatuses(state.incidents, updatedEvents);
@@ -776,7 +791,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       // Also mark any related email events as resolved
       const updatedEvents = state.events.map(ev => 
         (ev.category === 'email' && ev.userId === target?.recipient?.split('@')[0])
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'quarantined' as const }
           : ev
       );
 
@@ -805,7 +820,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const releasedEvents = state.events.map(ev =>
         ev.category === 'email' && ev.userId === target?.recipient?.split('@')[0]
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'allowed' as const }
           : ev
       );
       return {
@@ -833,7 +848,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const updatedEvents = state.events.map(ev =>
         ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status !== 'resolved'
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'quarantined' as const }
           : ev
       );
       return {
@@ -863,7 +878,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const updatedEvents = state.events.map(ev =>
         ev.userId === userId && ev.category === 'identity' && ev.status !== 'resolved'
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'reviewed' as const }
           : ev
       );
       return {
@@ -899,7 +914,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const updatedEvents = state.events.map(ev =>
         (ev.deviceId === deviceId || (ev.category === 'network' && String(ev.metadata.sourceIP || '') === dev?.ip)) && ev.status !== 'resolved'
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'isolated' as const }
           : ev
       );
       return {
@@ -933,7 +948,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
           ev.metadata.targetNodeId === nodeId ||
           ev.metadata.sourceIP === node.ip
         )
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'isolated' as const }
           : ev
       );
       const now = new Date().toISOString();
@@ -978,7 +993,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       let updatedEvents = state.events;
       if (status === 'resolved' && inc) {
         updatedEvents = state.events.map(ev => 
-          inc.eventIds.includes(ev.id) ? { ...ev, status: 'resolved' as const } : ev
+          inc.eventIds.includes(ev.id) ? { ...ev, status: 'resolved' as const, responseStatus: 'resolved' as const } : ev
         );
       }
 
@@ -1032,7 +1047,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const updatedEvents = state.events.map(ev =>
         ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
-          ? { ...ev, status: 'resolved' as const, metadata: { ...ev.metadata, breakGlassApproved: true, breakGlassDecision: 'approved' } }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'approved' as const, metadata: { ...ev.metadata, breakGlassApproved: true, breakGlassDecision: 'approved' } }
           : ev
       );
       return {
@@ -1064,7 +1079,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const updatedEvents = state.events.map(ev =>
         ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
-          ? { ...ev, status: 'resolved' as const, metadata: { ...ev.metadata, breakGlassApproved: false, breakGlassDecision: 'declined' } }
+          ? { ...ev, status: 'resolved' as const, responseStatus: 'declined' as const, metadata: { ...ev.metadata, breakGlassApproved: false, breakGlassDecision: 'declined' } }
           : ev
       );
       return {
