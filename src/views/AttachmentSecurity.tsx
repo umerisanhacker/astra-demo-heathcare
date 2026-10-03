@@ -1,4 +1,5 @@
 import { DecisionBadge } from '../components/security/DecisionBadge';
+import ActionNoteModal from '../components/security/ActionNoteModal';
 import { useState } from 'react';
 import { 
   useAttachments, 
@@ -19,12 +20,14 @@ export default function AttachmentSecurity() {
   const [selectedAttId, setSelectedAttId] = useState<string | null>(attachments[0]?.id ?? null);
   const selectedAtt = attachments.find(att => att.id === selectedAttId) ?? attachments[0] ?? null;
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [showQuarantineReview, setShowQuarantineReview] = useState(false);
 
 
   const latestSimulatedAttachment = attachments.find(att => att.id.startsWith('att-sim-'));
 
-  const handleQuarantine = (attId: string) => {
-    quarantineAttachment(attId);
+  const handleQuarantine = (attId: string, note: string) => {
+    quarantineAttachment(attId, note || undefined);
+    setShowQuarantineReview(false);
     const nextAttachment = attachments.find(att => att.id !== attId && att.decision !== 'QUARANTINED');
     if (nextAttachment) setSelectedAttId(nextAttachment?.id ?? null);
     setActionNotice(`Payload ${attId} placed into simulated quarantine vault.`);
@@ -177,7 +180,7 @@ export default function AttachmentSecurity() {
 
             {selectedAtt.decision !== 'QUARANTINED' ? (
               <button
-                onClick={() => handleQuarantine(selectedAtt.id)}
+                onClick={() => setShowQuarantineReview(true)}
                 className="btn btn-danger"
                 style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
               >
@@ -189,6 +192,16 @@ export default function AttachmentSecurity() {
               </div>
             )}
           </div>
+
+          <ActionNoteModal
+            open={showQuarantineReview}
+            title={`Review attachment — ${selectedAtt.filename}`}
+            description="Confirm the containment decision. The optional note is stored in the synthetic audit ledger for analyst traceability."
+            actionLabel="Quarantine Payload"
+            actionTone="danger"
+            onCancel={() => setShowQuarantineReview(false)}
+            onConfirm={(note) => handleQuarantine(selectedAtt.id, note)}
+          />
 
           {/* Metadata Specifications Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
