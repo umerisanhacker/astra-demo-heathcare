@@ -4,6 +4,22 @@ import { calculatePosture } from './riskEngine';
 import { correlateEvents, calculateIncidentRisk } from './correlationEngine';
 import { createInitialBaseline } from './initialData';
 
+function synchronizeIncidentStatuses(incidents: AppState['incidents'], events: SecurityEvent[]): AppState['incidents'] {
+  const now = new Date().toISOString();
+  return incidents.map(incident => {
+    if (incident.status === 'resolved') return incident;
+    const hasActiveSignal = incident.eventIds.some(id =>
+      events.some(event =>
+        event.id === id &&
+        (event.status === 'new' || event.status === 'acknowledged')
+      )
+    );
+    return hasActiveSignal
+      ? incident
+      : { ...incident, status: 'resolved' as const, updatedAt: now };
+  });
+}
+
 function resolveSecurityEvent(state: AppState, eventId: string, actionName: string, details?: string): AppState {
   const target = state.events.find(event => event.id === eventId);
   if (!target) return state;
@@ -12,11 +28,7 @@ function resolveSecurityEvent(state: AppState, eventId: string, actionName: stri
     event.id === eventId ? { ...event, status: 'resolved' as const } : event
   );
 
-  const updatedIncidents = state.incidents.map(incident =>
-    incident.eventIds.includes(eventId)
-      ? { ...incident, updatedAt: new Date().toISOString() }
-      : incident
-  );
+  const updatedIncidents = synchronizeIncidentStatuses(state.incidents, updatedEvents);
 
   const now = new Date().toISOString();
   const audit: AuditEvent = {
@@ -30,8 +42,10 @@ function resolveSecurityEvent(state: AppState, eventId: string, actionName: stri
     details: details || target.description,
   };
 
+  const resolvedIncidentIds = new Set(updatedIncidents.filter(i => i.status === 'resolved').map(i => i.id));
   const remainingNotifications = state.notifications.filter(
-    notification => notification.relatedEventId !== eventId
+    notification => notification.relatedEventId !== eventId &&
+      (!notification.relatedIncidentId || !resolvedIncidentIds.has(notification.relatedIncidentId))
   );
 
   return {
