@@ -396,7 +396,7 @@ export default function Incidents() {
                     <CheckCircle2 size={16} /> Incident fully resolved — no further response action required.
                   </div>
                 )}
-              </div>           </div>
+              </div>
 
             {/* Investigation Notes */}
             <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
