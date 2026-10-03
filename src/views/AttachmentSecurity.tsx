@@ -30,6 +30,8 @@ export default function AttachmentSecurity() {
 
   const handleQuarantine = (attId: string) => {
     quarantineAttachment(attId);
+    const nextAttachment = attachments.find(att => att.id !== attId && att.decision !== 'QUARANTINED');
+    if (nextAttachment) setSelectedAtt(nextAttachment);
     setActionNotice(`Payload ${attId} placed into simulated quarantine vault.`);
     setTimeout(() => setActionNotice(null), 3500);
   };
