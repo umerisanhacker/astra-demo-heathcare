@@ -448,7 +448,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             read: false,
             severity: 'high',
             relatedEventId: attachmentEvent.id,
-            targetView: 'Attachment Security',
+            targetView: 'Attachments',
           }
         );
       }
