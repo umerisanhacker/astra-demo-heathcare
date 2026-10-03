@@ -1,7 +1,7 @@
 import type { AppState, AuditEvent, AppNotification, SecurityEvent, SimulatedEmail, SimulatedEHRAccess } from './types';
 import type { Action } from './actions';
 import { calculatePosture } from './riskEngine';
-import { correlateEvents } from './correlationEngine';
+import { correlateEvents, calculateIncidentRisk } from './correlationEngine';
 import { createInitialBaseline } from './initialData';
 
 function resolveSecurityEvent(state: AppState, eventId: string, actionName: string, details?: string): AppState {
@@ -41,6 +41,76 @@ function resolveSecurityEvent(state: AppState, eventId: string, actionName: stri
     securityPosture: calculatePosture(updatedEvents),
     notifications: remainingNotifications,
     auditLog: [audit, ...state.auditLog],
+  };
+}
+
+function createIncidentFromEvent(state: AppState, eventId: string): AppState {
+  const event = state.events.find(e => e.id === eventId);
+  if (!event) return state;
+
+  const existing = state.incidents.find(incident =>
+    incident.eventIds.includes(eventId) &&
+    incident.status !== 'resolved'
+  );
+  if (existing) {
+    return {
+      ...state,
+      selectedIncidentId: existing.id,
+      currentView: 'Incidents',
+      appMode: 'console',
+    };
+  }
+
+  const now = new Date().toISOString();
+  const riskScore = calculateIncidentRisk([event.id], state.events);
+  const incidentId = `INC-SIG-${Date.now().toString().slice(-8)}`;
+  const incident = {
+    id: incidentId,
+    title: `Identity Signal Investigation — ${event.actor || event.userId || 'Affected Account'}`,
+    severity: event.severity,
+    status: 'investigating' as const,
+    affectedUserId: event.userId,
+    affectedSystems: [event.system],
+    eventIds: [event.id],
+    riskScore,
+    riskFactors: [{
+      id: `rf-${event.id}`,
+      label: event.title,
+      deduction: event.riskContribution || 15,
+      eventId: event.id,
+      category: event.category,
+    }],
+    createdAt: now,
+    updatedAt: now,
+    description: `Analyst-initiated SOC investigation opened from the ${event.eventType} signal. The signal remains linked to the original telemetry and audit trail.`,
+    assignedInvestigator: 'SOC Analyst L2 (Synthetic)',
+    recommendedActions: [
+      'Review authentication context and device identity',
+      'Validate session timing and network origin',
+      'Revoke or reset credentials if compromise is confirmed',
+      'Review correlated EHR and application activity',
+    ],
+    notes: [{
+      id: `note-signal-${Date.now()}`,
+      author: 'SOC Workspace',
+      timestamp: now,
+      text: `Investigation opened directly from security signal ${event.id}; no automatic multi-vector incident existed yet.`,
+    }],
+  };
+
+  const notifications = state.notifications.map(notification =>
+    notification.relatedEventId === event.id
+      ? { ...notification, relatedIncidentId: incidentId }
+      : notification
+  );
+
+  return {
+    ...state,
+    incidents: [incident, ...state.incidents],
+    notifications,
+    selectedIncidentId: incidentId,
+    currentView: 'Incidents',
+    appMode: 'console',
   };
 }
 
@@ -841,30 +911,67 @@ export function rootReducer(state: AppState, action: Action): AppState {
     case 'APPROVE_BREAK_GLASS': {
       const { accessId } = action.payload;
       const acc = state.ehrAccesses.find(a => a.id === accessId);
+      if (!acc || acc.breakGlassDecision === 'approved') return state;
+
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
         timestamp: new Date().toISOString(),
         actor: 'Clinical Privacy & Compliance Officer',
         system: 'EHR Audit Core',
-        action: `Emergency break-glass reviewed & approved: ${acc?.doctorName} -> ${acc?.patientName}`,
+        action: `Emergency break-glass reviewed & approved: ${acc.doctorName} -> ${acc.patientName}`,
         outcome: 'success',
-        details: `Clinical emergency justification verified: ${acc?.accessReason}`,
+        details: `Clinical emergency justification verified: ${acc.accessReason}`,
       };
       const updatedEvents = state.events.map(ev =>
         ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
-          ? { ...ev, status: 'resolved' as const }
+          ? { ...ev, status: 'resolved' as const, metadata: { ...ev.metadata, breakGlassApproved: true, breakGlassDecision: 'approved' } }
           : ev
       );
       return {
         ...state,
         ehrAccesses: state.ehrAccesses.map(a => 
-          a.id === accessId ? { ...a, breakGlassApproved: true, risk: 'low' as const } : a
+          a.id === accessId ? { ...a, breakGlassApproved: true, breakGlassDecision: 'approved', risk: 'low' as const } : a
         ),
         events: updatedEvents,
         securityPosture: calculatePosture(updatedEvents),
         notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
+    }
+
+    case 'DECLINE_BREAK_GLASS': {
+      const { accessId } = action.payload;
+      const acc = state.ehrAccesses.find(a => a.id === accessId);
+      if (!acc || acc.breakGlassDecision === 'declined') return state;
+
+      const newAudit: AuditEvent = {
+        id: `aud-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actor: 'Clinical Privacy & Compliance Officer',
+        system: 'EHR Audit Core',
+        action: `Emergency break-glass reviewed & declined: ${acc.doctorName} -> ${acc.patientName}`,
+        outcome: 'warning',
+        details: `Emergency access was not approved by the synthetic compliance reviewer. Recorded reason: ${acc.accessReason}`,
+      };
+      const updatedEvents = state.events.map(ev =>
+        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
+          ? { ...ev, status: 'resolved' as const, metadata: { ...ev.metadata, breakGlassApproved: false, breakGlassDecision: 'declined' } }
+          : ev
+      );
+      return {
+        ...state,
+        ehrAccesses: state.ehrAccesses.map(a =>
+          a.id === accessId ? { ...a, breakGlassApproved: false, breakGlassDecision: 'declined', risk: 'medium' as const } : a
+        ),
+        events: updatedEvents,
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
+        auditLog: [newAudit, ...state.auditLog],
+      };
+    }
+
+    case 'CREATE_INCIDENT_FROM_EVENT': {
+      return createIncidentFromEvent(state, action.payload.eventId);
     }
 
     case 'SET_GUIDED_DEMO':
