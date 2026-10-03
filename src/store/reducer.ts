@@ -554,11 +554,18 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Dynamic execution flagged malicious archive structure.',
       };
+      const updatedEvents = state.events.map(ev =>
+        ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status !== 'resolved'
+          ? { ...ev, status: 'resolved' as const }
+          : ev
+      );
       return {
         ...state,
         attachments: state.attachments.map(a => 
           a.id === attachmentId ? { ...a, decision: 'QUARANTINED' as const } : a
         ),
+        events: updatedEvents,
+        securityPosture: calculatePosture(updatedEvents),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -575,9 +582,16 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Active SSO sessions revoked. Mandatory MFA re-enrollment required.',
       };
+      const updatedEvents = state.events.map(ev =>
+        ev.userId === userId && ev.category === 'identity' && ev.status !== 'resolved'
+          ? { ...ev, status: 'acknowledged' as const }
+          : ev
+      );
       return {
         ...state,
         users: state.users.map(u => u.id === userId ? { ...u, status: 'flagged' as const } : u),
+        events: updatedEvents,
+        securityPosture: calculatePosture(updatedEvents),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -602,9 +616,16 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: 'Endpoint severed from clinical VLAN 5. Traffic redirected to blackhole sandbox.',
       };
+      const updatedEvents = state.events.map(ev =>
+        (ev.deviceId === deviceId || (ev.category === 'network' && String(ev.metadata.sourceIP || '') === dev?.ip)) && ev.status !== 'resolved'
+          ? { ...ev, status: 'acknowledged' as const }
+          : ev
+      );
       return {
         ...state,
         devices: state.devices.map(d => d.id === deviceId ? { ...d, status: 'isolated' as const } : d),
+        events: updatedEvents,
+        securityPosture: calculatePosture(updatedEvents),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -680,11 +701,18 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: `Clinical emergency justification verified: ${acc?.accessReason}`,
       };
+      const updatedEvents = state.events.map(ev =>
+        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
+          ? { ...ev, status: 'resolved' as const }
+          : ev
+      );
       return {
         ...state,
         ehrAccesses: state.ehrAccesses.map(a => 
           a.id === accessId ? { ...a, breakGlassApproved: true, risk: 'low' as const } : a
         ),
+        events: updatedEvents,
+        securityPosture: calculatePosture(updatedEvents),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
