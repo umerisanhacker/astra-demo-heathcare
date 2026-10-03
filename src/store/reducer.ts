@@ -377,7 +377,83 @@ export function rootReducer(state: AppState, action: Action): AppState {
         }
       }
 
-      const newEvents = [event, ...state.events];
+      // A phishing simulation is a multi-signal delivery event: the same synthetic
+      // message contains a suspicious URL and a suspicious attachment. Emit those
+      // downstream telemetry records into the same central event stream so each
+      // security module immediately reflects the exact same simulation.
+      const generatedEvents: SecurityEvent[] = [event];
+      const generatedNotifications: AppNotification[] = [];
+
+      if (simulationType === 'Phishing' || simulationType === 'SIMULATE PHISHING') {
+        const linkEvent: SecurityEvent = {
+          id: `${eventId}-link`,
+          timestamp,
+          eventType: 'SUSPICIOUS_LINK',
+          category: 'linkguard',
+          severity: 'critical',
+          title: 'Malicious URL Found Inside Phishing Email',
+          description: 'LinkGuard extracted the credential-harvesting URL from the simulated phishing message.',
+          source: 'LinkGuard Email Connector',
+          actor: 'Dr. Sarah Wilson',
+          userId: 'dr.sarah',
+          system: 'LinkGuard Safe-Proxy',
+          status: 'new',
+          riskContribution: 18,
+          metadata: {
+            url: 'https://secure-hospital-login.example/account',
+            domain: 'secure-hospital-login.example',
+            riskScore: 88,
+            decision: 'BLOCK',
+            parentEventId: eventId,
+          },
+        };
+        const attachmentEvent: SecurityEvent = {
+          id: `${eventId}-attachment`,
+          timestamp,
+          eventType: 'ATTACHMENT_ANALYZED',
+          category: 'email',
+          severity: 'high',
+          title: 'Suspicious Phishing Attachment Detected',
+          description: 'Static inspection found executable/script indicators in patient_billing_manifest.zip.',
+          source: 'Attachment Sentinel',
+          actor: 'Dr. Sarah Wilson',
+          userId: 'dr.sarah',
+          system: 'Attachment Security Scanner',
+          status: 'new',
+          riskContribution: 12,
+          metadata: {
+            filename: 'patient_billing_manifest.zip',
+            decision: 'SUSPICIOUS',
+            riskScore: 91,
+            parentEventId: eventId,
+          },
+        };
+        generatedEvents.push(linkEvent, attachmentEvent);
+        generatedNotifications.push(
+          {
+            id: `${eventId}-notif-link`,
+            title: 'LinkGuard Signal Generated',
+            message: 'Suspicious credential-harvesting URL extracted from the simulated phishing email.',
+            timestamp,
+            read: false,
+            severity: 'critical',
+            relatedEventId: linkEvent.id,
+            targetView: 'LinkGuard',
+          },
+          {
+            id: `${eventId}-notif-attachment`,
+            title: 'Attachment Sentinel Signal Generated',
+            message: 'patient_billing_manifest.zip requires static security inspection.',
+            timestamp,
+            read: false,
+            severity: 'high',
+            relatedEventId: attachmentEvent.id,
+            targetView: 'Attachment Security',
+          }
+        );
+      }
+
+      const newEvents = [...generatedEvents, ...state.events];
       const newIncidents = correlateEvents(newEvents, state.incidents);
       const newPosture = calculatePosture(newEvents);
 
@@ -414,7 +490,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         users: updatedUsers,
         devices: updatedDevices,
         networkNodes: updatedNetworkNodes,
-        notifications: [newNotif, ...state.notifications],
+        notifications: [...generatedNotifications, newNotif, ...state.notifications],
         auditLog: [newAudit, ...state.auditLog],
       };
     }
