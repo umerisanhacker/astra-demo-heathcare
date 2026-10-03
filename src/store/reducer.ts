@@ -875,6 +875,46 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
     }
 
+    case 'ISOLATE_NETWORK_NODE': {
+      const { nodeId } = action.payload;
+      const node = state.networkNodes.find(n => n.id === nodeId);
+      if (!node) return state;
+
+      const updatedEvents = state.events.map(ev =>
+        ev.category === 'network' &&
+        ev.status !== 'resolved' &&
+        (
+          ev.metadata.targetNodeId === nodeId ||
+          ev.metadata.sourceIP === node.ip
+        )
+          ? { ...ev, status: 'resolved' as const }
+          : ev
+      );
+      const now = new Date().toISOString();
+      const audit: AuditEvent = {
+        id: `aud-node-isolate-${Date.now()}`,
+        timestamp: now,
+        actor: 'SOC Network Defender',
+        system: 'Network Access Control (NAC)',
+        action: `Isolated network node: ${node.name}`,
+        outcome: 'success',
+        details: `Synthetic node ${node.ip} moved to quarantine state.`,
+      };
+
+      return {
+        ...state,
+        networkNodes: state.networkNodes.map(n => n.id === nodeId ? { ...n, status: 'isolated' as const } : n),
+        events: updatedEvents,
+        incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
+        securityPosture: calculatePosture(updatedEvents),
+        notifications: state.notifications.filter(n =>
+          !n.relatedEventId ||
+          !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')
+        ),
+        auditLog: [audit, ...state.auditLog],
+      };
+    }
+
     case 'UPDATE_INCIDENT_STATUS': {
       const { incidentId, status } = action.payload;
       const inc = state.incidents.find(i => i.id === incidentId);
