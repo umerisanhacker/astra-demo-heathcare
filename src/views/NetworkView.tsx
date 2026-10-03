@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   useEvents, 
-  useStore 
+  useStore,
+  useIsolateNetworkNode 
 } from '../store/store';
 import { 
   Network, 
@@ -16,13 +17,15 @@ import type { NetworkTelemetryNode } from '../store/types';
 export default function NetworkView() {
   const events = useEvents();
   const { state } = useStore();
+  const isolateNetworkNode = useIsolateNetworkNode();
 
   const [selectedNode, setSelectedNode] = useState<NetworkTelemetryNode>(state.networkNodes[2] || state.networkNodes[0]);
   const [isolationNotice, setIsolationNotice] = useState<string | null>(null);
 
-  const networkEvents = events.filter(e => e.category === 'network');
+  const networkEvents = events.filter(e => e.category === 'network' && (e.status === 'new' || e.status === 'acknowledged'));
 
   const handleIsolateNode = (node: NetworkTelemetryNode) => {
+    isolateNetworkNode(node.id);
     setIsolationNotice(`Node ${node.name} (${node.ip}) isolated into synthetic Quarantine VLAN.`);
     setTimeout(() => setIsolationNotice(null), 3500);
   };
