@@ -3,8 +3,10 @@ import {
   useEmails, 
   useQuarantineEmail, 
   useReleaseEmail, 
-  useSetCurrentView 
+  useSetCurrentView,
+  useEvents
 } from '../store/store';
+import { DecisionBadge } from '../components/security/DecisionBadge';
 import { 
   AlertTriangle, 
   ShieldAlert, 
@@ -22,6 +24,7 @@ export default function EmailSecurity() {
   const quarantineEmail = useQuarantineEmail();
   const releaseEmail = useReleaseEmail();
   const setCurrentView = useSetCurrentView();
+  const events = useEvents();
 
   const [activeTab, setActiveTab] = useState<'inbox' | 'quarantine' | 'analyzed' | 'policies'>('inbox');
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(emails[0]?.id ?? null);
@@ -30,6 +33,10 @@ export default function EmailSecurity() {
 
 
   const latestSimulatedEmail = emails.find(em => em.id.startsWith('em-sim-'));
+  const selectedEmailEvent = selectedEmail
+    ? events.find(e => e.category === 'email' && e.actor === selectedEmail.recipientName && e.status !== 'resolved')
+      || events.find(e => e.category === 'email' && e.actor === selectedEmail.recipientName)
+    : undefined;
 
   const filteredEmails = emails.filter(em => {
     if (activeTab === 'inbox') return em.status === 'inbox';
@@ -253,6 +260,7 @@ export default function EmailSecurity() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                     {getRiskBadge(selectedEmail.risk)}
+                    <DecisionBadge status={selectedEmail.status === 'quarantined' ? 'quarantined' : selectedEmailEvent?.responseStatus || (selectedEmail.risk === 'low' ? 'allowed' : 'pending')} />
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       ID: {selectedEmail.id}
                     </span>
