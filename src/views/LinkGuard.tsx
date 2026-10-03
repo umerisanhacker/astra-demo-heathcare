@@ -36,6 +36,9 @@ export default function LinkGuard() {
 
   const [simulatedAction, setSimulatedAction] = useState<string | null>(null);
   const latestLinkEvent = linkEvents.find(e => e.status === 'new' || e.status === 'acknowledged');
+  const latestHistoricalLinkEvent = [...linkEvents].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  )[0];
 
   const runAnalysis = (urlToAnalyze: string) => {
     if (!urlToAnalyze.trim()) return;
@@ -209,7 +212,9 @@ export default function LinkGuard() {
             </h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '.55rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <DecisionBadge status={latestLinkEvent ? deriveDecisionStatus(latestLinkEvent) : 'allowed'} />
+            {latestHistoricalLinkEvent && (
+              <DecisionBadge status={deriveDecisionStatus(latestHistoricalLinkEvent)} />
+            )}
             <span className="badge bg-positive-light">LinkGuard Safe-Proxy Active</span>
           </div>
         </div>
