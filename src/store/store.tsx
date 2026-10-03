@@ -152,6 +152,13 @@ export function useAuditLog() {
   return state.auditLog;
 }
 
+export function useResolveSecurityEvent() {
+  const { dispatch } = useStore();
+  return useCallback((eventId: string, action: string, details?: string) => {
+    dispatch({ type: 'RESOLVE_SECURITY_EVENT', payload: { eventId, action, details } });
+  }, [dispatch]);
+}
+
 export function useMarkNotificationsRead() {
   const { dispatch } = useStore();
   return useCallback(() => dispatch({ type: 'MARK_NOTIFICATIONS_READ' }), [dispatch]);
