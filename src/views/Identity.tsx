@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 import { 
   useUsers, 
   useDevices, 
@@ -156,9 +157,12 @@ export default function Identity() {
                     </div>
                   </div>
 
-                  <span className={`badge ${u.status === 'flagged' ? 'bg-critical-light' : hasAlerts ? 'bg-warning-light' : 'bg-positive-light'}`}>
-                    {u.status === 'flagged' ? 'FLAGGED' : hasAlerts ? 'ELEVATED RISK' : 'NORMAL'}
-                  </span>
+                  <DecisionBadge status={u.status === 'flagged'
+                    ? (activeIdentityEvents.find(e => e.userId === u.id) ? deriveDecisionStatus(activeIdentityEvents.find(e => e.userId === u.id)!) : 'pending')
+                    : hasAlerts
+                      ? 'pending'
+                      : 'allowed'
+                  } />
                 </button>
               );
             })}
