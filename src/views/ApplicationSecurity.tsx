@@ -105,6 +105,7 @@ export default function ApplicationSecurity() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
                     <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{e.title}</span>
                     <span className="badge bg-critical-light">{e.severity.toUpperCase()}</span>
+                    <DecisionBadge status={deriveDecisionStatus(e)} />
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{e.description}</div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
