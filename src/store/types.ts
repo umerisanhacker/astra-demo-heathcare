@@ -104,6 +104,7 @@ export interface SimulatedEHRAccess {
   isBreakGlass: boolean;
   breakGlassApproved?: boolean;
   breakGlassDecision?: 'pending' | 'approved' | 'declined';
+  relatedEventId?: string;
   risk: Severity;
 }
 
