@@ -14,6 +14,7 @@ import ThreatChart from '../components/dashboard/ThreatChart';
 import SecurityPosture from '../components/dashboard/SecurityPosture';
 import CriticalIncident from '../components/dashboard/CriticalIncident';
 import RecentEvents from '../components/dashboard/RecentEvents';
+import AttackChainOverview from '../components/dashboard/AttackChainOverview';
 
 export default function Overview() {
   const events = useEvents();
@@ -174,6 +175,9 @@ export default function Overview() {
           />
         </div>
       </div>
+
+      {/* Multi-vector attack chain */}
+      <AttackChainOverview events={events} incidentActive={Boolean(criticalIncident)} />
 
       {/* Main Grid: Threat Chart & Security Posture */}
       <div className="grid-main">
