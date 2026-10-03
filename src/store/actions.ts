@@ -27,9 +27,9 @@ export type Action =
   | { type: 'SET_SELECTED_INCIDENT'; payload: string | null }
   | { type: 'RECALCULATE_POSTURE' }
   | { type: 'QUARANTINE_EMAIL'; payload: { emailId: string; reason?: string } }
-  | { type: 'RELEASE_EMAIL'; payload: { emailId: string } }
-  | { type: 'QUARANTINE_ATTACHMENT'; payload: { attachmentId: string } }
-  | { type: 'FLAG_USER'; payload: { userId: string } }
+  | { type: 'RELEASE_EMAIL'; payload: { emailId: string; reason?: string } }
+  | { type: 'QUARANTINE_ATTACHMENT'; payload: { attachmentId: string; reason?: string } }
+  | { type: 'FLAG_USER'; payload: { userId: string; reason?: string } }
   | { type: 'UNFLAG_USER'; payload: { userId: string } }
   | { type: 'ISOLATE_DEVICE'; payload: { deviceId: string } }
   | { type: 'ISOLATE_NETWORK_NODE'; payload: { nodeId: string } }
