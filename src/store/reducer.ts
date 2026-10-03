@@ -559,7 +559,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         events: newEvents,
         incidents: newIncidents,
         securityPosture: newPosture,
-        notifications: [newNotif, ...state.notifications],
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
       };
     }
     
@@ -637,16 +637,6 @@ export function rootReducer(state: AppState, action: Action): AppState {
         outcome: 'success',
         details: reason || 'Isolated by operator due to malicious threat score.',
       };
-      const newNotif: AppNotification = {
-        id: `not-${Date.now()}`,
-        title: 'Email Quarantined',
-        message: `Message "${target?.subject || emailId}" isolated in security vault.`,
-        timestamp: new Date().toISOString(),
-        read: false,
-        severity: 'low',
-        targetView: 'Email Security',
-      };
-
       const updatedEmails = state.emails.map(e => 
         e.id === emailId ? { ...e, status: 'quarantined' as const } : e
       );
@@ -690,7 +680,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         emails: state.emails.map(e => e.id === emailId ? { ...e, status: 'inbox' as const } : e),
         events: releasedEvents,
         securityPosture: calculatePosture(releasedEvents),
-        notifications: state.notifications.filter(n => n.relatedEventId && !releasedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !releasedEvents.some(ev => ev.id === n.relatedEventId && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -738,7 +728,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
       };
       const updatedEvents = state.events.map(ev =>
         ev.userId === userId && ev.category === 'identity' && ev.status !== 'resolved'
-          ? { ...ev, status: 'acknowledged' as const }
+          ? { ...ev, status: 'resolved' as const }
           : ev
       );
       return {
