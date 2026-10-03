@@ -124,7 +124,6 @@ export function TopNav() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <button
             onClick={() => setShowGuidedDemo(true)}
-            className="btn btn-outline"
             className="btn btn-outline topnav-demo-btn"
           >
             <Play size={14} /> Start Guided Demo
@@ -236,7 +235,6 @@ export function TopNav() {
           {/* Switch to Public Website */}
           <button
             onClick={() => setAppMode('public')}
-            className="btn btn-secondary"
             className="btn btn-secondary topnav-public-btn"
             title="Switch to Public Product Website"
           >
