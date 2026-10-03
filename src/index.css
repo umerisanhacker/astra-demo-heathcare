@@ -867,6 +867,8 @@ input, textarea, select {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #c5d3df; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #9eb2c2; }
+
+.top-nav {
   height: var(--header-height);
   background: rgba(255,255,255,.84);
   border-bottom: 1px solid rgba(220,230,239,.88);
@@ -874,7 +876,7 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.75rem;
+  padding: 0 1.25rem;
   position: sticky;
   top: 0;
   z-index: 30;
