@@ -1064,7 +1064,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'DECLINE_BREAK_GLASS': {
-      const { accessId } = action.payload;
+      const { accessId, reason } = action.payload;
       const acc = state.ehrAccesses.find(a => a.id === accessId);
       if (!acc || acc.breakGlassDecision === 'declined') return state;
 
