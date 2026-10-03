@@ -23,6 +23,7 @@ import {
   Mail
 } from 'lucide-react';
 import type { IncidentStatus } from '../store/types';
+import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 
 export default function Incidents() {
   const incidents = useIncidents();
@@ -267,9 +268,12 @@ export default function Incidents() {
                         <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
                           {evt.title}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <DecisionBadge status={deriveDecisionStatus(evt)} />
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                        </div>
                       </div>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                         {evt.description}
