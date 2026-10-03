@@ -19,42 +19,69 @@ export default function ThreatChart({ events }: Props) {
   const [timeframe, setTimeframe] = useState<'24h' | '7d' | '30d'>('24h');
 
   const chartData = useMemo(() => {
+    // Deterministic synthetic baseline: most periods are quiet, with a few
+    // believable operational spikes. Simulator events are layered on top.
+    const baseline24h = [
+      { time: '00:00', email: 1, identity: 0, network: 1, ehr: 0 },
+      { time: '04:00', email: 0, identity: 0, network: 0, ehr: 0 },
+      { time: '08:00', email: 2, identity: 1, network: 1, ehr: 0 },
+      { time: '12:00', email: 3, identity: 1, network: 2, ehr: 1 },
+      { time: '16:00', email: 2, identity: 0, network: 1, ehr: 0 },
+      { time: '20:00', email: 1, identity: 0, network: 1, ehr: 0 },
+    ];
+
+    const activeCounts = events.reduce(
+      (acc, event) => {
+        if (event.status === 'resolved' || event.status === 'false_positive') return acc;
+        if (event.category === 'email') acc.email += 1;
+        if (event.category === 'identity') acc.identity += 1;
+        if (event.category === 'network') acc.network += 1;
+        if (event.category === 'ehr' && event.metadata.breakGlassApproved !== true) acc.ehr += 1;
+        return acc;
+      },
+      { email: 0, identity: 0, network: 0, ehr: 0 }
+    );
+
     if (timeframe === '24h') {
-      // 6 time buckets across 24h
-      return [
-        { time: '00:00', email: 2, identity: 1, network: 4, ehr: 0 },
-        { time: '04:00', email: 1, identity: 3, network: 6, ehr: 1 },
-        { time: '08:00', email: 5, identity: 2, network: 3, ehr: 2 },
-        { time: '12:00', email: 8, identity: 4, network: 7, ehr: 5 },
-        { time: '16:00', email: 6, identity: 3, network: 5, ehr: 3 },
-        { time: '20:00', email: 3, identity: 2, network: 4, ehr: 2 },
-      ].map((pt, idx) => {
+      return baseline24h.map((point, index) => {
+        const isRecentBucket = index >= 4;
+        const isCurrentBucket = index === 5;
         return {
-          ...pt,
-          email: pt.email + (idx === 3 ? Math.min(6, events.filter(e => e.category === 'email').length) : 0),
-          identity: pt.identity + (idx === 4 ? Math.min(5, events.filter(e => e.category === 'identity').length) : 0),
-          network: pt.network + (idx === 3 ? Math.min(4, events.filter(e => e.category === 'network').length) : 0),
-          ehr: pt.ehr + (idx === 4 ? Math.min(7, events.filter(e => e.category === 'ehr').length) : 0),
+          ...point,
+          email: point.email + (isCurrentBucket ? Math.min(5, activeCounts.email) : isRecentBucket ? Math.min(2, activeCounts.email) : 0),
+          identity: point.identity + (isCurrentBucket ? Math.min(5, activeCounts.identity) : 0),
+          network: point.network + (isCurrentBucket ? Math.min(5, activeCounts.network) : 0),
+          ehr: point.ehr + (isCurrentBucket ? Math.min(5, activeCounts.ehr) : 0),
         };
       });
-    } else if (timeframe === '7d') {
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'];
-      return days.map((day, idx) => ({
-        time: day,
-        email: 12 + idx * 2 + (idx === 6 ? events.filter(e => e.category === 'email').length : 0),
-        identity: 8 + idx * 3 + (idx === 6 ? events.filter(e => e.category === 'identity').length : 0),
-        network: 15 + idx * 2,
-        ehr: 6 + idx * 4 + (idx === 6 ? events.filter(e => e.category === 'ehr').length : 0),
-      }));
-    } else {
-      // 30 days
-      return [
-        { time: 'Week 1', email: 45, identity: 28, network: 62, ehr: 19 },
-        { time: 'Week 2', email: 58, identity: 34, network: 71, ehr: 24 },
-        { time: 'Week 3', email: 62, identity: 41, network: 80, ehr: 38 },
-        { time: 'Week 4', email: 78, identity: 49, network: 94, ehr: 52 },
-      ];
     }
+
+    if (timeframe === '7d') {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'];
+      const normal = [
+        [3, 1, 2, 0],
+        [2, 0, 1, 0],
+        [4, 1, 2, 1],
+        [2, 0, 1, 0],
+        [5, 1, 3, 1],
+        [1, 0, 1, 0],
+        [2, 1, 2, 0],
+      ];
+      return days.map((day, index) => ({
+        time: day,
+        email: normal[index][0] + (index === 6 ? activeCounts.email : 0),
+        identity: normal[index][1] + (index === 6 ? activeCounts.identity : 0),
+        network: normal[index][2] + (index === 6 ? activeCounts.network : 0),
+        ehr: normal[index][3] + (index === 6 ? activeCounts.ehr : 0),
+      }));
+    }
+
+    return [
+      { time: 'Week 1', email: 18, identity: 7, network: 14, ehr: 4 },
+      { time: 'Week 2', email: 22, identity: 9, network: 16, ehr: 5 },
+      { time: 'Week 3', email: 19, identity: 8, network: 13, ehr: 4 },
+      { time: 'Week 4', email: 25, identity: 10, network: 18, ehr: 6 },
+    ];
   }, [timeframe, events]);
 
   return (
