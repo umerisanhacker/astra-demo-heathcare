@@ -90,7 +90,7 @@ export default function ThreatChart({ events }: Props) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
         <div>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Threat Activity Telemetry
+            Security Activity Telemetry
           </h2>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             Multi-vector signal rates across synthetic hospital infrastructure
