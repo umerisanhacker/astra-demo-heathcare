@@ -1,4 +1,5 @@
 import { useEvents, useCreateIncidentFromEvent, useSetCurrentView } from '../store/store';
+import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function ApplicationSecurity() {
