@@ -17,24 +17,24 @@ import {
   ShieldCheck,
   Building2
 } from 'lucide-react';
-import { useCurrentView, useSetCurrentView, useIncidents } from '../../store/store';
+import { useCurrentView, useSetCurrentView, useStore } from '../../store/store';
+import { selectNavigationAlertCounts } from '../../store/selectors';
 
 export function Sidebar() {
   const currentView = useCurrentView();
   const setCurrentView = useSetCurrentView();
-  const incidents = useIncidents();
-
-  const activeIncidents = incidents.filter(i => i.status === 'active' || i.status === 'investigating').length;
+  const { state } = useStore();
+  const alertCounts = selectNavigationAlertCounts(state);
 
   const securityItems = [
-    { name: 'Incidents', icon: AlertTriangle, badge: activeIncidents > 0 ? activeIncidents : undefined, badgeColor: 'var(--critical)' },
-    { name: 'Email Security', icon: Mail },
-    { name: 'LinkGuard', icon: Link },
-    { name: 'Attachments', icon: FileCheck },
-    { name: 'Identity', icon: Users },
-    { name: 'Network', icon: Network },
-    { name: 'Application Security', icon: Server },
-    { name: 'EHR Security', icon: Activity },
+    { name: 'Incidents', icon: AlertTriangle, badge: alertCounts.incidents },
+    { name: 'Email Security', icon: Mail, badge: alertCounts.emailSecurity },
+    { name: 'LinkGuard', icon: Link, badge: alertCounts.linkGuard },
+    { name: 'Attachments', icon: FileCheck, badge: alertCounts.attachments },
+    { name: 'Identity', icon: Users, badge: alertCounts.identity },
+    { name: 'Network', icon: Network, badge: alertCounts.network },
+    { name: 'Application Security', icon: Server, badge: alertCounts.applicationSecurity },
+    { name: 'EHR Security', icon: Activity, badge: alertCounts.ehrSecurity },
   ];
 
   const opItems = [
@@ -144,16 +144,28 @@ export function Sidebar() {
                   <Icon size={17} style={{ marginRight: '0.75rem', color: active ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
                   {item.name}
                 </div>
-                {item.badge !== undefined && (
-                  <span style={{
-                    backgroundColor: item.badgeColor || 'var(--accent-primary)',
-                    color: 'white',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    padding: '0.1rem 0.45rem',
-                    borderRadius: '9999px',
-                  }}>
-                    {item.badge}
+                {item.badge > 0 && (
+                  <span
+                    title={`${item.badge} verification ${item.badge === 1 ? 'item' : 'items'} pending`}
+                    aria-label={`${item.badge} verification ${item.badge === 1 ? 'item' : 'items'} pending`}
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      minWidth: '22px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--critical)',
+                      color: 'white',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 4px 10px rgba(239, 68, 68, 0.22)',
+                      border: '2px solid white',
+                    }}
+                  >
+                    {item.badge > 99 ? '99+' : item.badge}
                   </span>
                 )}
               </button>
