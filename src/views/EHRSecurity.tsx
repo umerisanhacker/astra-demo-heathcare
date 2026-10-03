@@ -3,6 +3,7 @@ import {
   useEHRAccesses, 
   usePatients, 
   useApproveBreakGlass, 
+  useDeclineBreakGlass,
   useSelectIncident, 
   useSetCurrentView 
 } from '../store/store';
@@ -16,6 +17,7 @@ export default function EHRSecurity() {
   const ehrAccesses = useEHRAccesses();
   const patients = usePatients();
   const approveBreakGlass = useApproveBreakGlass();
+  const declineBreakGlass = useDeclineBreakGlass();
   const selectIncident = useSelectIncident();
   const setCurrentView = useSetCurrentView();
 
@@ -23,12 +25,19 @@ export default function EHRSecurity() {
   const [approvalFeedback, setApprovalFeedback] = useState<string | null>(null);
 
   const breakGlassSessions = ehrAccesses.filter(a => a.isBreakGlass);
+  const pendingBreakGlassSessions = breakGlassSessions.filter(a => a.breakGlassDecision === 'pending' || (!a.breakGlassApproved && a.breakGlassDecision !== 'declined'));
   const anomalousAccesses = ehrAccesses.filter(a => a.isAnomalous && !a.isBreakGlass);
   const latestAnomaly = anomalousAccesses[0];
 
   const handleApproveBreakGlass = (accessId: string) => {
     approveBreakGlass(accessId);
-    setApprovalFeedback(`Break-glass access for session ${accessId} officially approved and committed to compliance audit ledger.`);
+    setApprovalFeedback(`Break-glass access for session ${accessId} officially approved and committed to the compliance audit ledger.`);
+    setTimeout(() => setApprovalFeedback(null), 3500);
+  };
+
+  const handleDeclineBreakGlass = (accessId: string) => {
+    declineBreakGlass(accessId);
+    setApprovalFeedback(`Break-glass access for session ${accessId} was declined and recorded for compliance review.`);
     setTimeout(() => setApprovalFeedback(null), 3500);
   };
 
@@ -56,7 +65,7 @@ export default function EHRSecurity() {
           {[
             { id: 'access_logs', label: 'Access Logs' },
             { id: 'velocity', label: 'Bulk Access Velocity' },
-            { id: 'break_glass', label: `Break-Glass (${breakGlassSessions.length})` },
+            { id: 'break_glass', label: `Break-Glass${pendingBreakGlassSessions.length ? ` (${pendingBreakGlassSessions.length})` : ''}` },
             { id: 'patients', label: 'Synthetic Patients' },
           ].map(tab => (
             <button
@@ -181,7 +190,7 @@ export default function EHRSecurity() {
               <div className="badge bg-positive-light" style={{ marginBottom: '.3rem' }}>CLINICAL ACCESS BASELINE NORMAL</div>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>No active synthetic EHR anomalies</h2>
               <p style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.2rem' }}>
-                Approved break-glass activity remains documented and is not treated as malicious by the prototype scoring engine.
+                Break-glass access is reviewed separately from malicious EHR activity; pending sessions require an explicit approve or decline decision.
               </p>
             </div>
           </div>
@@ -275,7 +284,7 @@ export default function EHRSecurity() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <span className="badge bg-warning-light" style={{ marginBottom: '0.35rem' }}>
-                      {session.breakGlassApproved ? 'BREAK-GLASS REVIEWED & APPROVED' : 'BREAK-GLASS ACTIVE — PENDING COMPLIANCE REVIEW'}
+                      session.breakGlassDecision === 'approved' ? 'BREAK-GLASS REVIEWED & APPROVED' : session.breakGlassDecision === 'declined' ? 'BREAK-GLASS REVIEWED & DECLINED' : 'BREAK-GLASS ACTIVE — PENDING COMPLIANCE REVIEW'
                     </span>
                     <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                       Emergency Access: {session.doctorName} &rarr; {session.patientName}
@@ -285,14 +294,23 @@ export default function EHRSecurity() {
                     </div>
                   </div>
 
-                  {!session.breakGlassApproved && (
-                    <button
-                      onClick={() => handleApproveBreakGlass(session.id)}
-                      className="btn btn-primary"
-                      style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', backgroundColor: 'var(--positive)' }}
-                    >
-                      <CheckCircle2 size={15} /> Approve Clinical Justification
-                    </button>
+                  {session.breakGlassDecision !== 'approved' && session.breakGlassDecision !== 'declined' && (
+                    <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => handleApproveBreakGlass(session.id)}
+                        className="btn btn-primary"
+                        style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', backgroundColor: 'var(--positive)' }}
+                      >
+                        <CheckCircle2 size={15} /> Authenticate & Approve
+                      </button>
+                      <button
+                        onClick={() => handleDeclineBreakGlass(session.id)}
+                        className="btn btn-outline"
+                        style={{ fontSize: '0.825rem', padding: '0.45rem 1rem', borderColor: 'rgba(239,68,68,.4)', color: 'var(--critical)' }}
+                      >
+                        Decline / Reject
+                      </button>
+                    </div>
                   )}
                 </div>
 
