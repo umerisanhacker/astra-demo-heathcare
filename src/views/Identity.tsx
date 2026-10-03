@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
+import ActionNoteModal from '../components/security/ActionNoteModal';
 import { 
   useUsers, 
   useDevices, 
@@ -30,14 +31,16 @@ export default function Identity() {
 
   const [selectedUser, setSelectedUser] = useState<SimulatedUser>(users[0]);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [showFlagReview, setShowFlagReview] = useState(false);
 
   const identityEvents = events.filter(e => e.category === 'identity');
   const activeIdentityEvents = identityEvents.filter(e => e.status === 'new' || e.status === 'acknowledged');
   const userEvents = identityEvents.filter(e => e.userId === selectedUser.id && (e.status === 'new' || e.status === 'acknowledged'));
   const latestActiveUserEvent = [...userEvents].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
-  const handleFlagAccount = (userId: string) => {
-    flagUser(userId);
+  const handleFlagAccount = (userId: string, note: string) => {
+    flagUser(userId, note || undefined);
+    setShowFlagReview(false);
     setFeedback(`Account ${userId} flagged for mandatory credential reset & token revocation.`);
     setTimeout(() => setFeedback(null), 3500);
   };
@@ -189,7 +192,7 @@ export default function Identity() {
 
             {selectedUser.status !== 'flagged' ? (
               <button
-                onClick={() => handleFlagAccount(selectedUser.id)}
+                onClick={() => setShowFlagReview(true)}
                 className="btn btn-danger"
                 style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
               >
@@ -201,6 +204,16 @@ export default function Identity() {
               </span>
             )}
           </div>
+
+          <ActionNoteModal
+            open={showFlagReview}
+            title={`Review identity anomaly — ${selectedUser.name}`}
+            description="Confirm the account response. The optional note is written to the synthetic audit ledger so the next analyst can understand why the token revocation was performed."
+            actionLabel="Flag & Revoke Tokens"
+            actionTone="danger"
+            onCancel={() => setShowFlagReview(false)}
+            onConfirm={(note) => handleFlagAccount(selectedUser.id, note)}
+          />
 
           {/* Normal vs. Anomalous Baseline Comparison (Section 21 requirement) */}
           <div style={{ marginBottom: '1.75rem' }}>
