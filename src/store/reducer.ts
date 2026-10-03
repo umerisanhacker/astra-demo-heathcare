@@ -438,6 +438,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             isAnomalous: true,
             isBreakGlass: false,
             risk: 'critical',
+            relatedEventId: eventId,
           };
           updatedEHRAccesses = [newEHRAccess, ...updatedEHRAccesses];
           break;
@@ -481,6 +482,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
             isAnomalous: true,
             isBreakGlass: false,
             risk: 'critical',
+            relatedEventId: eventId,
           };
           updatedEHRAccesses = [newEHRAccess, ...updatedEHRAccesses];
           break;
