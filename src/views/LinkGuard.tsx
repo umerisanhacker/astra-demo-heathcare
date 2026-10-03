@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useStore, useEvents, useSetCurrentView, useResolveSecurityEvent } from '../store/store';
+import { useEvents, useSetCurrentView, useResolveSecurityEvent } from '../store/store';
 import { 
   Link as LinkIcon, 
   ShieldAlert, 
@@ -8,10 +8,8 @@ import {
   ArrowRight,
   Search
 } from 'lucide-react';
-import type { AuditEvent } from '../store/types';
 
 export default function LinkGuard() {
-  const { dispatch } = useStore();
   const events = useEvents();
   const setCurrentView = useSetCurrentView();
   const resolveSecurityEvent = useResolveSecurityEvent();
