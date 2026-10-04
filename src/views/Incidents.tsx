@@ -263,7 +263,7 @@ export default function Incidents() {
                         <div style={{ fontSize: '.7rem', color: 'var(--text-secondary)', marginTop: '.12rem', lineHeight: 1.35 }}>{step.detail}</div>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        {running ? <Loader2 size={18} color="var(--accent-primary)" style={{ animation: 'spin 0.9s linear infinite' }} /> : done ? <CheckCircle2 size={17} color="var(--positive)" /> : <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)' }} />}
+                        {running ? <Loader2 size={18} color="var(--accent-primary)" style={{ animation: 'caresentinel-spin 0.9s linear infinite' }} /> : done ? <CheckCircle2 size={17} color="var(--positive)" /> : <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)' }} />}
                       </div>
                     </div>
                   );
