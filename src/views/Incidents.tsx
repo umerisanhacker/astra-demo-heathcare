@@ -34,6 +34,7 @@ export default function Incidents() {
   const flagUser = useFlagUser();
   const isolateDevice = useIsolateDevice();
   const quarantineEmail = useQuarantineEmail();
+  const isIncidentResponse = state.workspaceRole === 'incident_response';
 
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [newNoteText, setNewNoteText] = useState('');
@@ -81,9 +82,10 @@ export default function Incidents() {
       : undefined;
     const incidentResolved = activeIncident.status === 'resolved';
     const incidentContained = activeIncident.status === 'contained';
-    const canContain = !incidentResolved && !incidentContained;
-    const canResolve = !incidentResolved;
-    const canExecutePlaybooks = !incidentResolved;
+    const canContain = isIncidentResponse && !incidentResolved && !incidentContained;
+    const canResolve = isIncidentResponse && !incidentResolved;
+    const canExecutePlaybooks = isIncidentResponse && !incidentResolved;
+    const canEscalate = !isIncidentResponse && !incidentResolved && activeIncident.status !== 'escalated';
     const hasCredentialCompromise = incidentEvents.some(e => e.eventType === 'CREDENTIAL_COMPROMISE');
     const hasUnusualLogin = incidentEvents.some(e => e.eventType === 'UNUSUAL_LOGIN' || e.eventType === 'UNKNOWN_DEVICE');
     const assessment = activeIncident.riskScore >= 80
@@ -341,16 +343,23 @@ export default function Incidents() {
               </div>
             </div>
 
-            {/* Safe Simulated Response Actions */}
+            {/* Role-specific response / investigation actions */}
             <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Safe Response Actions
+                  {isIncidentResponse ? 'Incident Response Actions' : 'Investigation Actions'}
                 </h3>
-                <span className="badge bg-accent-light">Simulation</span>
+                <span className="badge" style={{
+                  background: isIncidentResponse ? '#f3e8ff' : 'var(--accent-light)',
+                  color: isIncidentResponse ? '#7c3aed' : 'var(--accent-primary)'
+                }}>
+                  {isIncidentResponse ? 'IR WORKSPACE' : 'SOC WORKSPACE'}
+                </span>
               </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                Execute clinical containment playbooks. Actions modify synthetic in-memory state and commit verification records to the audit ledger.
+                {isIncidentResponse
+                  ? 'Coordinate containment, account protection, recovery and final closure. All actions update the shared incident state and audit trail.'
+                  : 'Collect evidence, assess the signal and document findings. The SOC does not execute containment or closure; escalate the case to Incident Response when intervention is required.'}
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -385,7 +394,7 @@ export default function Incidents() {
                 >
                   <Check size={16} /> Mark Threat Contained
                 </button>)}
-                {canExecutePlaybooks && !incidentResolved && (
+                {canEscalate && (
                   <button
                     onClick={() => handleAction('Escalate to Incident Response', () => updateStatus(activeIncident.id, 'escalated'))}
                     className="btn btn-outline"
