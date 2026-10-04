@@ -570,29 +570,11 @@ export function rootReducer(state: AppState, action: Action): AppState {
           },
         };
         generatedEvents.push(linkEvent, attachmentEvent);
-        generatedNotifications.push(
-          {
-            id: `${eventId}-notif-link`,
-            title: 'LinkGuard Signal Generated',
-            message: 'Suspicious credential-harvesting URL extracted from the simulated phishing email.',
-            timestamp,
-            read: false,
-            severity: 'critical',
-            relatedEventId: linkEvent.id,
-            targetView: 'LinkGuard',
-          },
-          {
-            id: `${eventId}-notif-attachment`,
-            title: 'Attachment Sentinel Signal Generated',
-            message: 'patient_billing_manifest.zip requires static security inspection.',
-            timestamp,
-            read: false,
-            severity: 'high',
-            relatedEventId: attachmentEvent.id,
-            targetView: 'Attachments',
-          }
-        );
-      }
+        // The phishing simulator is owned by Email Security. Downstream URL and
+        // attachment telemetry is retained for context, but it must not create
+        // independent operator notifications/badges. Analysts can inspect those
+        // signals from the email record when needed. A separate LinkGuard or
+        // Attachment simulation should be used to generate those module alerts.      }
 
       const newEvents = [...generatedEvents, ...state.events];
       const newIncidents = correlateEvents(newEvents, state.incidents);
