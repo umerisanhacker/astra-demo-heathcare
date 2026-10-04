@@ -7,7 +7,9 @@ import {
   Play,
   RotateCcw,
   AlertTriangle,
-  X
+  X,
+  ChevronDown,
+  UsersRound
 } from 'lucide-react';
 import { 
   useNotifications, 
@@ -15,7 +17,9 @@ import {
   useSetAppMode, 
   useSetCurrentView,
   useSelectIncident,
-  useResetDemo
+  useResetDemo,
+  useWorkspaceRole,
+  useSetWorkspaceRole
 } from '../../store/store';
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { GuidedDemoModal } from './GuidedDemoModal';
@@ -27,6 +31,9 @@ export function TopNav() {
   const setCurrentView = useSetCurrentView();
   const selectIncident = useSelectIncident();
   const resetDemo = useResetDemo();
+  const workspaceRole = useWorkspaceRole();
+  const setWorkspaceRole = useSetWorkspaceRole();
+  const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
 
   const [showNotifs, setShowNotifs] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -241,30 +248,122 @@ export function TopNav() {
             Public Site <ExternalLink size={13} />
           </button>
 
-          {/* User Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--accent-light)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--accent-primary)',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-            }}>
-              SA
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>
-                SOC Analyst L2
-              </span>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                Northstar Medical
-              </span>
-            </div>
+          {/* Workspace / Role Switcher */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setShowWorkspaceMenu(value => !value)}
+              aria-haspopup="menu"
+              aria-expanded={showWorkspaceMenu}
+              title="Switch security workspace"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.55rem',
+                padding: '0.35rem 0.55rem',
+                borderRadius: '9px',
+                border: showWorkspaceMenu ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                background: showWorkspaceMenu ? 'var(--bg-hover)' : 'transparent',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                backgroundColor: workspaceRole === 'incident_response' ? '#f3e8ff' : 'var(--accent-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: workspaceRole === 'incident_response' ? '#7c3aed' : 'var(--accent-primary)',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+              }}>
+                {workspaceRole === 'incident_response' ? 'IR' : 'SA'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: '112px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>
+                  {workspaceRole === 'incident_response' ? 'Incident Response' : 'SOC Analyst L2'}
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                  Northstar Medical
+                </span>
+              </div>
+              <ChevronDown size={14} color="var(--text-muted)" />
+            </button>
+
+            {showWorkspaceMenu && (
+              <div
+                role="menu"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 0.45rem)',
+                  right: 0,
+                  width: '285px',
+                  padding: '0.45rem',
+                  background: 'white',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-lg)',
+                  zIndex: 100,
+                }}
+              >
+                <div style={{ padding: '0.55rem 0.65rem 0.45rem', fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Security Workspace
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWorkspaceRole('soc_analyst_l2');
+                    setShowWorkspaceMenu(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.7rem',
+                    borderRadius: '9px',
+                    background: workspaceRole === 'soc_analyst_l2' ? 'var(--bg-hover)' : 'transparent',
+                    color: 'var(--text-primary)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <ShieldCheck size={17} color="var(--accent-primary)" />
+                  <span style={{ flex: 1 }}>
+                    <strong style={{ display: 'block', fontSize: '0.8rem' }}>SOC Analyst L2</strong>
+                    <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Triage, investigation & correlation</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWorkspaceRole('incident_response');
+                    setShowWorkspaceMenu(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.7rem',
+                    borderRadius: '9px',
+                    background: workspaceRole === 'incident_response' ? '#f5f3ff' : 'transparent',
+                    color: 'var(--text-primary)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <UsersRound size={17} color="#7c3aed" />
+                  <span style={{ flex: 1 }}>
+                    <strong style={{ display: 'block', fontSize: '0.8rem' }}>Incident Response Team</strong>
+                    <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Containment, eradication & recovery</span>
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
