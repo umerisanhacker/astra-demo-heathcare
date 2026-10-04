@@ -13,6 +13,7 @@ import { PublicLogin } from './views/public/PublicLogin';
 
 import Overview from './views/Overview';
 import Incidents from './views/Incidents';
+import IncidentResponse from './views/IncidentResponse';
 import EmailSecurity from './views/EmailSecurity';
 import LinkGuard from './views/LinkGuard';
 import AttachmentSecurity from './views/AttachmentSecurity';
@@ -61,6 +62,7 @@ function AppContent() {
     switch (state.currentView) {
       case 'Overview': return <Overview />;
       case 'Incidents': return <Incidents />;
+      case 'Incident Response': return <IncidentResponse />;
       case 'Email Security': return <EmailSecurity />;
       case 'LinkGuard': return <LinkGuard />;
       case 'Attachments': return <AttachmentSecurity />;
