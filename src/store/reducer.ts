@@ -609,7 +609,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         users: updatedUsers,
         devices: updatedDevices,
         networkNodes: updatedNetworkNodes,
-        notifications: [...generatedNotifications, newNotif, ...state.notifications],
+        notifications: [newNotif, ...state.notifications],
         auditLog: [newAudit, ...state.auditLog],
       };
     }
