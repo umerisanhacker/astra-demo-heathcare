@@ -22,7 +22,6 @@ import {
   ArrowRight,
   Mail
 } from 'lucide-react';
-import type { IncidentStatus } from '../store/types';
 import { DecisionBadge, deriveDecisionStatus } from '../components/security/DecisionBadge';
 
 export default function Incidents() {
@@ -46,7 +45,8 @@ export default function Incidents() {
   const filteredIncidents = incidents.filter(i => {
     if (filterStatus === 'all') return true;
     if (filterStatus === 'active') return i.status === 'active' || i.status === 'investigating' || i.status === 'new';
-    if (filterStatus === 'resolved') return i.status === 'resolved' || i.status === 'contained';
+    if (filterStatus === 'contained') return i.status === 'contained';
+    if (filterStatus === 'resolved') return i.status === 'resolved';
     return i.status === filterStatus;
   });
 
@@ -101,32 +101,16 @@ export default function Incidents() {
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
               Incident Lifecycle Status:
             </span>
-            {incidentResolved ? (
-              <span className="badge bg-positive-light">RESOLVED — FINAL</span>
-            ) : (
-              <select
-                value={activeIncident.status}
-                onChange={(e) => updateStatus(activeIncident.id, e.target.value as IncidentStatus)}
-                style={{
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)',
-                  backgroundColor: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  color: 'var(--text-primary)',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="new">NEW</option>
-                <option value="active">ACTIVE</option>
-                <option value="investigating">INVESTIGATING</option>
-                <option value="contained">CONTAINED</option>
-                <option value="resolved">RESOLVED</option>
-                <option value="escalated">ESCALATED</option>
-              </select>
-            )}
+            <span
+              className={incidentResolved ? 'badge bg-positive-light' : incidentContained ? 'badge bg-warning-light' : 'badge bg-info-light'}
+              style={{ textTransform: 'uppercase', letterSpacing: '.02em' }}
+              title="Read-only current state. Use the response actions below to change the incident lifecycle."
+            >
+              {activeIncident.status}
+            </span>
+            <span style={{ fontSize: '.72rem', color: 'var(--text-muted)' }}>
+              Current state
+            </span>
           </div>        </div>
 
         {/* Action feedback banner */}
@@ -480,7 +464,7 @@ export default function Incidents() {
           borderRadius: '8px',
           border: '1px solid var(--border)',
         }}>
-          {['all', 'active', 'investigating', 'resolved'].map(status => (
+          {['all', 'active', 'investigating', 'contained', 'resolved'].map(status => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
