@@ -523,10 +523,53 @@ export function rootReducer(state: AppState, action: Action): AppState {
       // downstream telemetry records into the same central event stream so each
       // security module immediately reflects the exact same simulation.
       const generatedEvents: SecurityEvent[] = [event];
+
       if (simulationType === 'Phishing' || simulationType === 'SIMULATE PHISHING') {
+        const linkEvent: SecurityEvent = {
+          id: `${eventId}-link`,
+          timestamp,
+          eventType: 'SUSPICIOUS_LINK',
+          category: 'linkguard',
+          severity: 'critical',
+          title: 'Malicious URL Found Inside Phishing Email',
+          description: 'LinkGuard extracted the credential-harvesting URL from the simulated phishing message.',
+          source: 'LinkGuard Email Connector',
+          actor: 'Dr. Sarah Wilson',
+          userId: 'dr.sarah',
+          system: 'LinkGuard Safe-Proxy',
+          status: 'new',
+          riskContribution: 18,
+          metadata: {
+            url: 'https://secure-hospital-login.example/account',
+            domain: 'secure-hospital-login.example',
+            riskScore: 88,
+            decision: 'BLOCK',
+            parentEventId: eventId,
+          },
+        };
+        const attachmentEvent: SecurityEvent = {
+          id: `${eventId}-attachment`,
+          timestamp,
+          eventType: 'ATTACHMENT_ANALYZED',
+          category: 'email',
+          severity: 'high',
+          title: 'Suspicious Phishing Attachment Detected',
+          description: 'Static inspection found executable/script indicators in patient_billing_manifest.zip.',
+          source: 'Attachment Sentinel',
+          actor: 'Dr. Sarah Wilson',
+          userId: 'dr.sarah',
+          system: 'Attachment Security Scanner',
+          status: 'new',
+          riskContribution: 12,
+          metadata: {
+            filename: 'patient_billing_manifest.zip',
+            decision: 'SUSPICIOUS',
+            riskScore: 91,
+            parentEventId: eventId,
+          },
+        };
         generatedEvents.push(linkEvent, attachmentEvent);
-        // Downstream LinkGuard and attachment telemetry is retained for correlation,
-        // but it does not create separate operator notifications.
+
       }
 
       const newEvents = [...generatedEvents, ...state.events];
@@ -566,7 +609,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         users: updatedUsers,
         devices: updatedDevices,
         networkNodes: updatedNetworkNodes,
-        notifications: [newNotif, ...state.notifications],
+        notifications: [...generatedNotifications, newNotif, ...state.notifications],
         auditLog: [newAudit, ...state.auditLog],
       };
     }
@@ -742,7 +785,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'RELEASE_EMAIL': {
-      const { emailId, reason } = action.payload;
+      const { emailId } = action.payload;
       const target = state.emails.find(e => e.id === emailId);
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
@@ -751,7 +794,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Email Security Gateway',
         action: `Released email from quarantine: "${target?.subject || emailId}"`,
         outcome: 'success',
-        details: reason || 'Analyst reviewed email body and false-positive indicators.',
+        details: 'Analyst reviewed email body and false-positive indicators.',
       };
       const releasedEvents = state.events.map(ev =>
         ev.category === 'email' && ev.userId === target?.recipient?.split('@')[0]
@@ -770,7 +813,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'QUARANTINE_ATTACHMENT': {
-      const { attachmentId, reason } = action.payload;
+      const { attachmentId } = action.payload;
       const att = state.attachments.find(a => a.id === attachmentId);
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
@@ -779,7 +822,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Attachment Threat Sandbox',
         action: `Quarantined file: ${att?.filename || attachmentId}`,
         outcome: 'success',
-        details: reason || 'Dynamic execution flagged malicious archive structure.',
+        details: 'Dynamic execution flagged malicious archive structure.',
       };
       const updatedEvents = state.events.map(ev =>
         ev.eventType === 'ATTACHMENT_ANALYZED' && ev.status !== 'resolved'
@@ -800,7 +843,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'FLAG_USER': {
-      const { userId, reason } = action.payload;
+      const { userId } = action.payload;
       const usr = state.users.find(u => u.id === userId);
       const newAudit: AuditEvent = {
         id: `aud-${Date.now()}`,
@@ -809,7 +852,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Active Directory / IAM',
         action: `Flagged user account: ${usr?.name || userId} for password reset`,
         outcome: 'success',
-        details: reason || 'Active SSO sessions revoked. Mandatory MFA re-enrollment required.',
+        details: 'Active SSO sessions revoked. Mandatory MFA re-enrollment required.',
       };
       const updatedEvents = state.events.map(ev =>
         ev.userId === userId && ev.category === 'identity' && ev.status !== 'resolved'
@@ -872,7 +915,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'ISOLATE_NETWORK_NODE': {
-      const { nodeId, reason } = action.payload;
+      const { nodeId } = action.payload;
       const node = state.networkNodes.find(n => n.id === nodeId);
       if (!node) return state;
 
@@ -894,7 +937,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'Network Access Control (NAC)',
         action: `Isolated network node: ${node.name}`,
         outcome: 'success',
-        details: reason || `Synthetic node ${node.ip} moved to quarantine state.`,
+        details: `Synthetic node ${node.ip} moved to quarantine state.`,
       };
 
       return {
@@ -967,7 +1010,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
     }
 
     case 'APPROVE_BREAK_GLASS': {
-      const { accessId, reason } = action.payload;
+      const { accessId } = action.payload;
       const acc = state.ehrAccesses.find(a => a.id === accessId);
       if (!acc || acc.breakGlassDecision === 'approved') return state;
 
@@ -978,10 +1021,10 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'EHR Audit Core',
         action: `Emergency break-glass reviewed & approved: ${acc.doctorName} -> ${acc.patientName}`,
         outcome: 'success',
-        details: reason || `Clinical emergency justification verified: ${acc.accessReason}`,
+        details: `Clinical emergency justification verified: ${acc.accessReason}`,
       };
       const updatedEvents = state.events.map(ev =>
-        ev.metadata.accessId === accessId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS')
+        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
           ? { ...ev, status: 'resolved' as const, responseStatus: 'approved' as const, metadata: { ...ev.metadata, breakGlassApproved: true, breakGlassDecision: 'approved' } }
           : ev
       );
@@ -993,13 +1036,13 @@ export function rootReducer(state: AppState, action: Action): AppState {
         events: updatedEvents,
         incidents: synchronizeIncidentStatuses(state.incidents, updatedEvents),
         securityPosture: calculatePosture(updatedEvents),
-        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS') && ev.status === 'resolved')),
+        notifications: state.notifications.filter(n => !n.relatedEventId || !updatedEvents.some(ev => ev.id === n.relatedEventId && ev.eventType === 'BREAK_GLASS' && ev.status === 'resolved')),
         auditLog: [newAudit, ...state.auditLog],
       };
     }
 
     case 'DECLINE_BREAK_GLASS': {
-      const { accessId, reason } = action.payload;
+      const { accessId } = action.payload;
       const acc = state.ehrAccesses.find(a => a.id === accessId);
       if (!acc || acc.breakGlassDecision === 'declined') return state;
 
@@ -1010,10 +1053,10 @@ export function rootReducer(state: AppState, action: Action): AppState {
         system: 'EHR Audit Core',
         action: `Emergency break-glass reviewed & declined: ${acc.doctorName} -> ${acc.patientName}`,
         outcome: 'warning',
-        details: reason || `Emergency access was not approved by the synthetic compliance reviewer. Recorded reason: ${acc.accessReason}`,
+        details: `Emergency access was not approved by the synthetic compliance reviewer. Recorded reason: ${acc.accessReason}`,
       };
       const updatedEvents = state.events.map(ev =>
-        ev.metadata.accessId === accessId && (ev.eventType === 'BREAK_GLASS' || ev.eventType === 'EHR_ACCESS')
+        ev.eventType === 'BREAK_GLASS' && ev.metadata.accessId === accessId
           ? { ...ev, status: 'resolved' as const, responseStatus: 'declined' as const, metadata: { ...ev.metadata, breakGlassApproved: false, breakGlassDecision: 'declined' } }
           : ev
       );
