@@ -1316,3 +1316,9 @@ input, textarea, select {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #c5d3df; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #9eb2c2; }
+
+
+@keyframes caresentinel-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
