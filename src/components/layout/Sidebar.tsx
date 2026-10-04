@@ -15,7 +15,8 @@ import {
   Settings, 
   HelpCircle,
   ShieldCheck,
-  Building2
+  Building2,
+  UsersRound
 } from 'lucide-react';
 import { useCurrentView, useSetCurrentView, useStore } from '../../store/store';
 import { selectNavigationAlertCounts } from '../../store/selectors';
@@ -172,6 +173,41 @@ export function Sidebar() {
             );
           })}
         </div>
+
+        {/* Incident Response Workspace */}
+        {state.workspaceRole === 'incident_response' && (
+          <div>
+            <div style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              marginBottom: '0.4rem',
+              paddingLeft: '0.85rem',
+            }}>
+              Response
+            </div>
+            <button
+              onClick={() => setCurrentView('Incident Response')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                width: '100%',
+                padding: '0.55rem 0.85rem',
+                borderRadius: '8px',
+                color: currentView === 'Incident Response' ? '#7c3aed' : 'var(--text-secondary)',
+                backgroundColor: currentView === 'Incident Response' ? '#f5f3ff' : 'transparent',
+                fontWeight: currentView === 'Incident Response' ? 700 : 500,
+                fontSize: '0.85rem',
+                marginBottom: '0.15rem',
+              }}
+            >
+              <UsersRound size={17} style={{ marginRight: '0.75rem', color: currentView === 'Incident Response' ? '#7c3aed' : 'var(--text-secondary)' }} />
+              Incident Response
+            </button>
+          </div>
+        )}
 
         {/* Operations Section */}
         <div>
