@@ -299,9 +299,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
           targetView = 'Identity';
           notifSeverity = 'critical';
 
-          updatedUsers = updatedUsers.map(u => 
-            u.id === 'dr.sarah' ? { ...u, status: 'flagged' } : u
-          );
+
           break;
         }
 
