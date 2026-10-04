@@ -66,7 +66,7 @@ export default function Incidents() {
     setTimeout(() => setActionFeedback(null), 3500);
   };
 
-  const runResponseWorkflow = async (type: 'contained' | 'resolved') => {
+  const runResponseWorkflow = async (type: 'contained' | 'resolved', deviceId?: string, emailId?: string) => {
     if (!activeIncident) return;
 
     const steps = type === 'contained'
@@ -103,8 +103,8 @@ export default function Incidents() {
         flagUser(activeIncident.affectedUserId, 'Synthetic incident containment playbook');
       }
       if (index === 5 && type === 'contained') {
-        if (derivedDeviceId) isolateDevice(derivedDeviceId);
-        if (relatedEmail) quarantineEmail(relatedEmail.id, 'Synthetic incident containment playbook');
+        if (deviceId) isolateDevice(deviceId);
+        if (emailId) quarantineEmail(emailId, 'Synthetic incident containment playbook');
       }
       if (index === 7) {
         updateStatus(activeIncident.id, type === 'contained' ? 'contained' : 'resolved');
@@ -558,7 +558,7 @@ export default function Incidents() {
                   <Mail size={16} /> {relatedEmail ? `Quarantine Related Email (${relatedEmail.id})` : 'No related email'}
                 </button>)}
                 {canContain && (<button
-                  onClick={() => runResponseWorkflow('contained')}
+                  onClick={() => runResponseWorkflow('contained', derivedDeviceId, relatedEmail?.id)}
                   className="btn btn-secondary"
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem' }}
                 >
