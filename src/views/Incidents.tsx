@@ -13,7 +13,8 @@ import {
 import { 
   ShieldAlert, 
   CheckCircle2, 
-  ArrowLeft, 
+  ArrowLeft,
+  Loader2, 
   User, 
   Check, 
   Plus, 
@@ -39,6 +40,14 @@ export default function Incidents() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [newNoteText, setNewNoteText] = useState('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [workflow, setWorkflow] = useState<{
+    type: 'contained' | 'resolved';
+    title: string;
+    steps: { label: string; detail: string }[];
+    current: number;
+    running: boolean;
+    completed: boolean;
+  } | null>(null);
 
   // Selected incident ID from state or local
   const activeIncident = incidents.find(i => i.id === state.selectedIncidentId) || null;
@@ -54,6 +63,57 @@ export default function Incidents() {
   const handleAction = (actionName: string, execute: () => void) => {
     execute();
     setActionFeedback(`Simulated Action Executed: ${actionName}`);
+    setTimeout(() => setActionFeedback(null), 3500);
+  };
+
+  const runResponseWorkflow = async (type: 'contained' | 'resolved') => {
+    if (!activeIncident) return;
+
+    const steps = type === 'contained'
+      ? [
+          { label: 'Identify affected account', detail: `Locate ${activeIncident.affectedUserId || 'the affected synthetic account'} and bind the response to this incident.` },
+          { label: 'Validate active session context', detail: 'Verify the correlated authentication/session evidence before containment.' },
+          { label: 'Evaluate containment controls', detail: 'Check available synthetic identity, device and email controls linked to this incident.' },
+          { label: 'Enforce account containment', detail: 'Flag the affected account and enforce credential reset when an affected account is present.' },
+          { label: 'Revoke active sessions', detail: 'Invalidate the synthetic active sessions/tokens associated with the affected identity.' },
+          { label: 'Apply related asset controls', detail: 'Isolate a correlated device and quarantine a related email when those signals exist.' },
+          { label: 'Transition incident state', detail: 'Move the shared incident lifecycle state to CONTAINED.' },
+          { label: 'Recalculate security posture', detail: 'Recalculate the synthetic risk/posture after containment controls are applied.' },
+          { label: 'Write audit verification', detail: 'Record the containment action, actor, timestamp and outcome in the audit trail.' },
+        ]
+      : [
+          { label: 'Verify containment state', detail: 'Confirm the incident is already contained before final closure.' },
+          { label: 'Review correlated evidence', detail: 'Re-check the incident timeline and all correlated synthetic signals.' },
+          { label: 'Verify account protection', detail: 'Confirm affected identity controls and active-session containment remain in place.' },
+          { label: 'Verify related assets', detail: 'Confirm linked device, network and email controls are no longer exposing the incident.' },
+          { label: 'Check for continuing signals', detail: 'Confirm no new correlated telemetry is keeping the incident active.' },
+          { label: 'Validate investigation notes', detail: 'Confirm the investigation record contains the analyst findings and response context.' },
+          { label: 'Confirm recovery readiness', detail: 'Verify the synthetic environment is ready for incident closure.' },
+          { label: 'Transition incident state', detail: 'Move the shared incident lifecycle state to RESOLVED.' },
+          { label: 'Write resolution audit record', detail: 'Record the final verification, actor, timestamp and closure outcome.' },
+        ];
+
+    setWorkflow({ type, title: type === 'contained' ? 'Containment Playbook' : 'Resolution Verification', steps, current: 0, running: true, completed: false });
+
+    for (let index = 0; index < steps.length; index += 1) {
+      await new Promise(resolve => setTimeout(resolve, 650));
+      setWorkflow(previous => previous ? { ...previous, current: index + 1 } : previous);
+
+      if (index === 3 && type === 'contained' && activeIncident.affectedUserId) {
+        flagUser(activeIncident.affectedUserId, 'Synthetic incident containment playbook');
+      }
+      if (index === 5 && type === 'contained') {
+        if (derivedDeviceId) isolateDevice(derivedDeviceId);
+        if (relatedEmail) quarantineEmail(relatedEmail.id, 'Synthetic incident containment playbook');
+      }
+      if (index === 7) {
+        updateStatus(activeIncident.id, type === 'contained' ? 'contained' : 'resolved');
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 350));
+    setWorkflow(previous => previous ? { ...previous, running: false, completed: true } : previous);
+    setActionFeedback(type === 'contained' ? 'Threat contained successfully — shared incident state updated.' : 'Incident fully resolved — shared incident state updated.');
     setTimeout(() => setActionFeedback(null), 3500);
   };
 
@@ -82,9 +142,9 @@ export default function Incidents() {
       : undefined;
     const incidentResolved = activeIncident.status === 'resolved';
     const incidentContained = activeIncident.status === 'contained';
-    const canContain = isIncidentResponse && !incidentResolved && !incidentContained;
-    const canResolve = isIncidentResponse && !incidentResolved;
-    const canExecutePlaybooks = isIncidentResponse && !incidentResolved;
+    const canContain = !incidentResolved && !incidentContained;
+    const canResolve = incidentContained && !incidentResolved;
+    const canExecutePlaybooks = !incidentResolved;
     const canEscalate = !isIncidentResponse && !incidentResolved && activeIncident.status !== 'escalated';
     const hasCredentialCompromise = incidentEvents.some(e => e.eventType === 'CREDENTIAL_COMPROMISE');
     const hasUnusualLogin = incidentEvents.some(e => e.eventType === 'UNUSUAL_LOGIN' || e.eventType === 'UNKNOWN_DEVICE');
@@ -121,6 +181,116 @@ export default function Incidents() {
               Current state
             </span>
           </div>        </div>
+
+        {workflow && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="response-workflow-title"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 2000,
+              background: 'rgba(10, 25, 41, 0.38)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem',
+            }}
+          >
+            <div className="card" style={{
+              width: 'min(680px, 100%)',
+              maxHeight: 'min(760px, calc(100vh - 2rem))',
+              overflowY: 'auto',
+              background: 'white',
+              padding: '1.5rem',
+              boxShadow: '0 24px 70px rgba(15, 39, 64, .22)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.15rem' }}>
+                <div>
+                  <div style={{ fontSize: '.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em', color: workflow.type === 'contained' ? 'var(--warning)' : 'var(--positive)' }}>
+                    Synthetic Response Execution
+                  </div>
+                  <h2 id="response-workflow-title" style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '.2rem' }}>
+                    {workflow.title}
+                  </h2>
+                  <p style={{ fontSize: '.78rem', color: 'var(--text-secondary)', marginTop: '.25rem' }}>
+                    CareSentinel is executing each verification and response operation against the synthetic hospital environment.
+                  </p>
+                </div>
+                <span className="badge" style={{
+                  background: workflow.completed ? 'var(--positive-bg)' : 'var(--accent-light)',
+                  color: workflow.completed ? 'var(--positive)' : 'var(--accent-primary)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {workflow.completed ? 'COMPLETED' : `STEP ${Math.min(workflow.current + 1, workflow.steps.length)} / ${workflow.steps.length}`}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.55rem' }}>
+                {workflow.steps.map((step, index) => {
+                  const done = workflow.completed || index < workflow.current;
+                  const running = !workflow.completed && index === workflow.current;
+                  return (
+                    <div key={step.label} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '30px minmax(0, 1fr) 28px',
+                      gap: '.75rem',
+                      alignItems: 'center',
+                      padding: '.72rem .8rem',
+                      borderRadius: '10px',
+                      border: `1px solid ${running ? 'rgba(0,145,180,.28)' : done ? 'rgba(18,150,111,.18)' : 'var(--border)'}`,
+                      background: running ? 'var(--accent-light)' : done ? 'var(--positive-bg)' : 'var(--bg-main)',
+                    }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: done ? 'var(--positive)' : running ? 'white' : 'white',
+                        color: done ? 'white' : 'var(--text-muted)',
+                        border: running ? '2px solid var(--accent-primary)' : '1px solid var(--border)',
+                        fontSize: '.7rem',
+                        fontWeight: 800,
+                      }}>
+                        {done ? <CheckCircle2 size={15} /> : index + 1}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '.82rem', fontWeight: 750, color: 'var(--text-primary)' }}>{step.label}</div>
+                        <div style={{ fontSize: '.7rem', color: 'var(--text-secondary)', marginTop: '.12rem', lineHeight: 1.35 }}>{step.detail}</div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        {running ? <Loader2 size={18} color="var(--accent-primary)" style={{ animation: 'spin 0.9s linear infinite' }} /> : done ? <CheckCircle2 size={17} color="var(--positive)" /> : <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)' }} />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {workflow.completed && (
+                <div style={{ marginTop: '1rem', padding: '.8rem .9rem', borderRadius: '9px', background: 'var(--positive-bg)', border: '1px solid rgba(18,150,111,.2)', color: 'var(--positive)', fontSize: '.8rem', fontWeight: 700 }}>
+                  <CheckCircle2 size={16} style={{ verticalAlign: 'middle', marginRight: '.4rem' }} />
+                  {workflow.type === 'contained'
+                    ? 'Containment completed. The incident is now CONTAINED and remains available for investigation/recovery.'
+                    : 'Resolution verification completed. The incident is now RESOLVED across all CareSentinel workspaces.'}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.1rem' }}>
+                <button
+                  className="btn btn-secondary"
+                  disabled={workflow.running}
+                  onClick={() => setWorkflow(null)}
+                >
+                  {workflow.running ? 'Executing…' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action feedback banner */}
         {actionFeedback && (
@@ -388,7 +558,7 @@ export default function Incidents() {
                   <Mail size={16} /> {relatedEmail ? `Quarantine Related Email (${relatedEmail.id})` : 'No related email'}
                 </button>)}
                 {canContain && (<button
-                  onClick={() => handleAction('Transition Incident to CONTAINED', () => updateStatus(activeIncident.id, 'contained'))}
+                  onClick={() => runResponseWorkflow('contained')}
                   className="btn btn-secondary"
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem' }}
                 >
@@ -404,7 +574,7 @@ export default function Incidents() {
                   </button>
                 )}
                 {canResolve && (<button
-                  onClick={() => handleAction('Resolve Incident and Recalculate Posture', () => updateStatus(activeIncident.id, 'resolved'))}
+                  onClick={() => runResponseWorkflow('resolved')}
                   className="btn btn-primary"
                   style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', backgroundColor: 'var(--positive)' }}
                 >
