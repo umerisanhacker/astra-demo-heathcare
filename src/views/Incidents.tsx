@@ -102,7 +102,7 @@ export default function Incidents() {
               Incident Lifecycle Status:
             </span>
             <span
-              className={incidentResolved ? 'badge bg-positive-light' : incidentContained ? 'badge bg-warning-light' : 'badge bg-info-light'}
+              className={incidentResolved ? 'badge bg-positive-light' : incidentContained ? 'badge bg-warning-light' : 'badge bg-accent-light'}
               style={{ textTransform: 'uppercase', letterSpacing: '.02em' }}
               title="Read-only current state. Use the response actions below to change the incident lifecycle."
             >
