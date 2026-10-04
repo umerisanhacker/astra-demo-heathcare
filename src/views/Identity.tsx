@@ -161,7 +161,7 @@ export default function Identity() {
                   </div>
 
                   <DecisionBadge status={u.status === 'flagged'
-                    ? (activeIdentityEvents.find(e => e.userId === u.id) ? deriveDecisionStatus(activeIdentityEvents.find(e => e.userId === u.id)!) : 'pending')
+                    ? (activeIdentityEvents.find(e => e.userId === u.id) ? 'pending' : 'reviewed')
                     : hasAlerts
                       ? 'pending'
                       : 'allowed'
