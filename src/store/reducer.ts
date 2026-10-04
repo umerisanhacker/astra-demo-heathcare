@@ -732,6 +732,14 @@ export function rootReducer(state: AppState, action: Action): AppState {
         appMode: 'console',
       };
 
+    case 'SET_WORKSPACE_ROLE':
+      return {
+        ...state,
+        workspaceRole: action.payload,
+        currentView: action.payload === 'incident_response' ? 'Incident Response' : state.currentView === 'Incident Response' ? 'Overview' : state.currentView,
+        appMode: 'console',
+      };
+
     case 'SET_APP_MODE':
       return { ...state, appMode: action.payload };
 
@@ -1086,7 +1094,8 @@ export function rootReducer(state: AppState, action: Action): AppState {
       const baseline = createInitialBaseline();
       return {
         ...baseline,
-        currentView: state.currentView, // stay on current view or Attack Simulator
+        workspaceRole: state.workspaceRole,
+        currentView: state.currentView,
         appMode: state.appMode,
       };
     }
