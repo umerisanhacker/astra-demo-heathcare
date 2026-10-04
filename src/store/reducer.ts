@@ -523,58 +523,11 @@ export function rootReducer(state: AppState, action: Action): AppState {
       // downstream telemetry records into the same central event stream so each
       // security module immediately reflects the exact same simulation.
       const generatedEvents: SecurityEvent[] = [event];
-      const generatedNotifications: AppNotification[] = [];
-
       if (simulationType === 'Phishing' || simulationType === 'SIMULATE PHISHING') {
-        const linkEvent: SecurityEvent = {
-          id: `${eventId}-link`,
-          timestamp,
-          eventType: 'SUSPICIOUS_LINK',
-          category: 'linkguard',
-          severity: 'critical',
-          title: 'Malicious URL Found Inside Phishing Email',
-          description: 'LinkGuard extracted the credential-harvesting URL from the simulated phishing message.',
-          source: 'LinkGuard Email Connector',
-          actor: 'Dr. Sarah Wilson',
-          userId: 'dr.sarah',
-          system: 'LinkGuard Safe-Proxy',
-          status: 'new',
-          riskContribution: 18,
-          metadata: {
-            url: 'https://secure-hospital-login.example/account',
-            domain: 'secure-hospital-login.example',
-            riskScore: 88,
-            decision: 'BLOCK',
-            parentEventId: eventId,
-          },
-        };
-        const attachmentEvent: SecurityEvent = {
-          id: `${eventId}-attachment`,
-          timestamp,
-          eventType: 'ATTACHMENT_ANALYZED',
-          category: 'email',
-          severity: 'high',
-          title: 'Suspicious Phishing Attachment Detected',
-          description: 'Static inspection found executable/script indicators in patient_billing_manifest.zip.',
-          source: 'Attachment Sentinel',
-          actor: 'Dr. Sarah Wilson',
-          userId: 'dr.sarah',
-          system: 'Attachment Security Scanner',
-          status: 'new',
-          riskContribution: 12,
-          metadata: {
-            filename: 'patient_billing_manifest.zip',
-            decision: 'SUSPICIOUS',
-            riskScore: 91,
-            parentEventId: eventId,
-          },
-        };
         generatedEvents.push(linkEvent, attachmentEvent);
-        // The phishing simulator is owned by Email Security. Downstream URL and
-        // attachment telemetry is retained for context, but it must not create
-        // independent operator notifications/badges. Analysts can inspect those
-        // signals from the email record when needed. A separate LinkGuard or
-        // Attachment simulation should be used to generate those module alerts.      }
+        // Downstream LinkGuard and attachment telemetry is retained for correlation,
+        // but it does not create separate operator notifications.
+      }
 
       const newEvents = [...generatedEvents, ...state.events];
       const newIncidents = correlateEvents(newEvents, state.incidents);
@@ -613,7 +566,7 @@ export function rootReducer(state: AppState, action: Action): AppState {
         users: updatedUsers,
         devices: updatedDevices,
         networkNodes: updatedNetworkNodes,
-        notifications: [...generatedNotifications, newNotif, ...state.notifications],
+        notifications: [newNotif, ...state.notifications],
         auditLog: [newAudit, ...state.auditLog],
       };
     }
