@@ -84,6 +84,13 @@ export default function Incidents() {
     const canContain = !incidentResolved && !incidentContained;
     const canResolve = !incidentResolved;
     const canExecutePlaybooks = !incidentResolved;
+    const hasCredentialCompromise = incidentEvents.some(e => e.eventType === 'CREDENTIAL_COMPROMISE');
+    const hasUnusualLogin = incidentEvents.some(e => e.eventType === 'UNUSUAL_LOGIN' || e.eventType === 'UNKNOWN_DEVICE');
+    const assessment = activeIncident.riskScore >= 80
+      ? { label: 'LIKELY COMPROMISE', confidence: 'HIGH', tone: 'var(--critical)', bg: 'var(--critical-bg)', recommendation: hasCredentialCompromise ? 'Flag the affected account and revoke active tokens, then validate the session and correlated clinical activity.' : 'Contain the affected asset and validate the correlated telemetry before resolving.' }
+      : activeIncident.riskScore >= 60
+        ? { label: 'SUSPICIOUS ACTIVITY', confidence: 'MODERATE', tone: 'var(--warning)', bg: 'var(--warning-bg)', recommendation: hasUnusualLogin ? 'Investigate the login context, device identity and network origin before deciding on account containment.' : 'Continue evidence collection and correlate additional telemetry before taking irreversible response actions.' }
+        : { label: 'INCONCLUSIVE', confidence: 'LOW', tone: 'var(--accent-primary)', bg: 'var(--accent-light)', recommendation: 'Gather more evidence and avoid declaring compromise until the telemetry supports a response decision.' };
 
     return (
       <div className="space-y-6 animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -311,6 +318,29 @@ export default function Incidents() {
 
           {/* Right Column: Safe Response Playbooks & Investigation Notes */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Analyst Assessment & Decision Gate */}
+            <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderLeft: `4px solid ${assessment.tone}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.9rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Analyst Assessment
+                  </div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+                    {assessment.label}
+                  </div>
+                </div>
+                <span className="badge" style={{ background: assessment.bg, color: assessment.tone, border: `1px solid ${assessment.tone}33` }}>
+                  {assessment.confidence} CONFIDENCE
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '0.8rem' }}>
+                CareSentinel does not label a person as a “hacker” from a single signal. The analyst makes that determination from correlated telemetry, identity context, device/network evidence and clinical access history.
+              </p>
+              <div style={{ padding: '0.8rem 0.9rem', borderRadius: '9px', background: 'var(--bg-main)', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Recommended next step:</strong> {assessment.recommendation}
+              </div>
+            </div>
+
             {/* Safe Simulated Response Actions */}
             <div className="card" style={{ padding: '1.75rem', backgroundColor: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -355,6 +385,15 @@ export default function Incidents() {
                 >
                   <Check size={16} /> Mark Threat Contained
                 </button>)}
+                {canExecutePlaybooks && !incidentResolved && (
+                  <button
+                    onClick={() => handleAction('Escalate to Incident Response', () => updateStatus(activeIncident.id, 'escalated'))}
+                    className="btn btn-outline"
+                    style={{ justifyContent: 'flex-start', padding: '0.65rem 1rem', borderColor: 'rgba(124, 58, 237, 0.35)', color: '#7c3aed' }}
+                  >
+                    <ArrowRight size={16} /> Escalate to Incident Response Team
+                  </button>
+                )}
                 {canResolve && (<button
                   onClick={() => handleAction('Resolve Incident and Recalculate Posture', () => updateStatus(activeIncident.id, 'resolved'))}
                   className="btn btn-primary"
