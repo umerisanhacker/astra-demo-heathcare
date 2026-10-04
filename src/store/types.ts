@@ -9,6 +9,7 @@ export type EventType =
 export type Category = 'email' | 'identity' | 'network' | 'ehr' | 'system' | 'linkguard' | 'application';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type IncidentStatus = 'new' | 'active' | 'investigating' | 'contained' | 'resolved' | 'escalated';
+export type WorkspaceRole = 'soc_analyst_l2' | 'incident_response';
 export type EventStatus = 'new' | 'acknowledged' | 'resolved' | 'false_positive';
 
 export interface SimulatedUser {
@@ -203,6 +204,7 @@ export interface NetworkTelemetryNode {
 }
 
 export interface AppState {
+  workspaceRole: WorkspaceRole;
   appMode: 'public' | 'console';
   publicPage: 'home' | 'features' | 'how-it-works' | 'security' | 'faq' | 'privacy' | 'terms' | 'login';
   currentView: string;
