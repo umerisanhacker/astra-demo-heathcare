@@ -22,6 +22,7 @@ export type Action =
   | { type: 'FINALIZE_ATTACK_CHAIN' }
   | { type: 'SET_SEARCH'; payload: string }
   | { type: 'SET_VIEW'; payload: string }
+  | { type: 'SET_WORKSPACE_ROLE'; payload: import('./types').WorkspaceRole }
   | { type: 'SET_APP_MODE'; payload: 'public' | 'console' }
   | { type: 'SET_PUBLIC_PAGE'; payload: 'home' | 'features' | 'how-it-works' | 'security' | 'faq' | 'privacy' | 'terms' | 'login' }
   | { type: 'SET_SELECTED_INCIDENT'; payload: string | null }
