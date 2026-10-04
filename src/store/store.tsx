@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 import type { 
   AppState, 
   IncidentStatus, 
-  IncidentNote 
+  IncidentNote,
+  WorkspaceRole 
 } from './types';
 import type { Action } from './actions';
 import { rootReducer } from './reducer';
@@ -24,6 +25,7 @@ import {
 } from './initialData';
 
 const initialState: AppState = {
+  workspaceRole: 'soc_analyst_l2',
   appMode: 'public',
   publicPage: 'home',
   currentView: 'Overview',
@@ -75,6 +77,16 @@ export function useAppMode() {
 export function usePublicPage() {
   const { state } = useStore();
   return state.publicPage;
+}
+
+export function useWorkspaceRole() {
+  const { state } = useStore();
+  return state.workspaceRole;
+}
+
+export function useSetWorkspaceRole() {
+  const { dispatch } = useStore();
+  return useCallback((role: WorkspaceRole) => dispatch({ type: 'SET_WORKSPACE_ROLE', payload: role }), [dispatch]);
 }
 
 export function useCurrentView() {
