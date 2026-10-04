@@ -36,10 +36,6 @@ export default function LinkGuard() {
 
   const [simulatedAction, setSimulatedAction] = useState<string | null>(null);
   const latestLinkEvent = linkEvents.find(e => e.status === 'new' || e.status === 'acknowledged');
-  const latestHistoricalLinkEvent = [...linkEvents].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  )[0];
-
   const runAnalysis = (urlToAnalyze: string) => {
     if (!urlToAnalyze.trim()) return;
     setAnalyzing(true);
