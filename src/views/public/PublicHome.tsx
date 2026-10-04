@@ -18,6 +18,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useSetAppMode, useSetCurrentView, useSetPublicPage } from '../../store/store';
+import AcidSquares from '../../components/effects/AcidSquares';
 
 export function PublicHome() {
   const setAppMode = useSetAppMode();
@@ -93,18 +94,50 @@ export function PublicHome() {
       <section style={{
         position: 'relative',
         overflow: 'hidden',
+        minHeight: '720px',
         padding: '5rem 2rem 6rem 2rem',
         borderBottom: '1px solid var(--border)',
         background: 'linear-gradient(180deg, #ffffff 0%, #f0f7fc 100%)',
       }}>
-        {/* Subtle background grid pattern */}
+        {/* Interactive AcidSquares shader background */}
+        <div aria-hidden="true" className="public-home-hero-acid">
+          <AcidSquares
+            color1="#5227FF"
+            color2="#A855F7"
+            color3="#FFFFFF"
+            detail="medium"
+            speed={0.7}
+            waveDepth={1}
+            zoom={1.3}
+            density={10.0}
+            glow={1.0}
+            exposure={2700}
+            spread={0.3}
+            stepSize={0.002}
+            colorShift={0}
+            contrast={1}
+            brightness={1.0}
+            opacity={1.0}
+            mouseInteraction={true}
+            mouseStrength={0.1}
+            mouseRadius={0.35}
+            blur={0}
+            grain={true}
+            grainIntensity={0.05}
+          />
+        </div>
+
+        {/* Readability veil keeps the healthcare UI light while preserving the shader depth. */}
+        <div aria-hidden="true" className="public-home-hero-acid-veil" />
+        {/* Subtle clinical grid remains above the shader as a restrained texture. */}
         <div style={{
           position: 'absolute',
           inset: 0,
+          zIndex: 2,
           backgroundImage: 'radial-gradient(#0284c7 0.65px, transparent 0.65px), radial-gradient(#0d9488 0.65px, #f0f7fc 0.65px)',
           backgroundSize: '26px 26px',
           backgroundPosition: '0 0, 13px 13px',
-          opacity: 0.22,
+          opacity: 0.10,
           pointerEvents: 'none',
         }} />
 
